@@ -1,0 +1,95 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# MD – Docker Compose (local development)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Quick start:
+#   1. cp .env.example .env          ← fill in your values (optional for local)
+#   2. docker compose up -d --build  ← build & start
+#   3. open http://localhost:8080    ← ready!
+#
+# This file is the SIMPLEST setup for local dev. No secrets, no Traefik,
+# no TLS. Perfect for hacking on the code.
+#
+# For production with Traefik → use docker-compose.nas.yml or .cloud.yml
+# ═══════════════════════════════════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+
+  # ── API + Frontend ───────────────────────────────────────────────────
+  # Single container: Go API serves the SvelteKit SPA on port 8080.
+  # The Dockerfile.app multi-stage build compiles both in one image.
+  md-api:
+    build:
+      context: .                          # repo root (contains web/, cmd/, etc.)
+      dockerfile: Dockerfile.app
+      args:
+        VERSION: ${APP_VERSION:-dev}      # shown on /health endpoint
+        GIT_SHA: ${GIT_SHA:-local}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    container_name: md-app
+    restart: unless-stopped
+
+    environment:
+      # ── Server ──
+      MD_HTTP_ADDR: ":8080"               # internal listen address
+      MD_STORAGE_PATH: /data              # mapped to ./data below
+
+      # ── Redis (optional) ──
+      # Leave empty to disable caching — everything still works, just slower.
+      # Format: redis://:password@host:port/db
+      MD_REDIS_URL: "${MD_REDIS_URL:-}"
+
+      # ── Auth (optional) ──
+      # Set an API key to require X-API-Key header on all requests.
+      # Leave empty = public access (fine for local dev).
+      MD_API_KEY: "${MD_API_KEY:-}"
+
+      # ── URLs ──
+      MD_APP_URL: "${MD_APP_URL:-http://localhost:8080}"
+      MD_CORS_ORIGINS: "${MD_CORS_ORIGINS:-*}"      # * is fine for local dev
+
+      # ── Timezone ──
+      TZ: "${TZ:-UTC}"
+
+    volumes:
+      - ./data:/data                      # your markdown files live here
+
+    ports:
+      - "127.0.0.1:8080:8080"            # localhost only — not exposed to LAN
+
+    networks:
+      - md
+
+  # ── Redis Cache ──────────────────────────────────────────────────────
+  # In-memory cache for rendered HTML. Optional but recommended.
+  # No password in local dev — the network is isolated.
+  redis:
+    image: redis:7.4-alpine
+    container_name: md-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb                   # cap memory usage
+      --maxmemory-policy allkeys-lru      # evict least-recently-used keys
+      --save 900 1                        # snapshot to disk every 15 min
+      --appendonly yes                    # write-ahead log for durability
+    volumes:
+      - redis_data:/data                  # persist cache across restarts
+    networks:
+      - md
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Named Volumes ──────────────────────────────────────────────────────
+volumes:
+  redis_data:                             # Redis AOF + RDB snapshots
+
+# ── Networks ───────────────────────────────────────────────────────────
+networks:
+  md:
+    driver: bridge                        # isolated bridge; only md containers

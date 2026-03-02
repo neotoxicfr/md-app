@@ -1,0 +1,200 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# MD – Docker Compose for NAS / Synology with Traefik + CrowdSec
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Prerequisites:
+#   - Traefik v3 running on an external "apps" Docker network
+#   - A dynamic Traefik config file pointing to this container (see docs/)
+#   - Secrets files created in ./secrets/ (see below)
+#
+# Setup:
+#   1. Create secrets:
+#        mkdir -p secrets
+#        openssl rand -base64 32 > secrets/redis_password
+#        echo "your-api-key"   > secrets/api_key          # or leave empty
+#        echo ""               > secrets/oidc_client_secret
+#        openssl rand -hex 32  > secrets/oidc_session_key
+#
+#   2. Adjust YOUR_DOMAIN below (search & replace)
+#
+#   3. Adjust the volume paths to match your NAS filesystem
+#      (e.g. /volume1/docker/apps/md/data → your path)
+#
+#   4. Deploy:
+#        docker compose -f docker-compose.nas.yml up -d --build
+#
+# Security model:
+#   - Secrets are bind-mounted files (./secrets/ → /run/secrets/)
+#   - NO secret is passed as an environment variable
+#   - The Go app reads /run/secrets/* at startup (getSecretOrEnv pattern)
+#   - Redis reads its password from /run/secrets/redis_password
+#   - ./secrets/ is in .gitignore — never committed
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+version: '3.8'
+
+# ── Docker Secrets ─────────────────────────────────────────────────────
+# Each file contains a single value (no newline). The Go app and Redis
+# both read these from /run/secrets/<name> at startup.
+# See: internal/config/config.go → getSecretOrEnv()
+secrets:
+  redis_password:
+    file: ./secrets/redis_password        # Redis --requirepass value
+  api_key:
+    file: ./secrets/api_key               # X-API-Key header value (empty = public)
+  oidc_client_secret:
+    file: ./secrets/oidc_client_secret    # OIDC provider secret (empty = disabled)
+  oidc_session_key:
+    file: ./secrets/oidc_session_key      # HMAC key for session cookies
+
+services:
+
+  # ── App (Go API + SvelteKit SPA) ─────────────────────────────────────
+  # This container serves both the REST API and the frontend SPA.
+  # Traefik routes HTTPS traffic here based on the dynamic config file.
+  #
+  # IMPORTANT: container_name must match the URL in your Traefik
+  #            dynamic config (e.g. infra/traefik/dynamic/md.yml)
+  md-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+      args:
+        VERSION: ${APP_VERSION:-latest}   # → /health endpoint "version" field
+        GIT_SHA: ${GIT_SHA:-nas}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: md/app:${APP_VERSION:-latest}  # local image tag for caching
+    container_name: md-api                # ← must match Traefik upstream
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true            # prevent privilege escalation
+
+    # Inject secret files into the container at /run/secrets/
+    secrets:
+      - redis_password
+      - api_key
+      - oidc_client_secret
+      - oidc_session_key
+
+    environment:
+      # ── Server ──
+      MD_HTTP_ADDR: ":8080"               # internal listen port
+      MD_STORAGE_PATH: /data              # persistent storage mount
+
+      # ── Public URL ──
+      # ⚠️  CHANGE THESE to your own domain!
+      MD_APP_URL: "https://${MD_DOMAIN:-md.example.com}"
+      MD_CORS_ORIGINS: "https://${MD_DOMAIN:-md.example.com}"
+
+      # ── Upload limit ──
+      MD_MAX_FILE_SIZE_MB: "${MD_MAX_FILE_SIZE_MB:-20}"
+
+      # ── Timezone ──
+      TZ: "${TZ:-UTC}"
+
+      # ── Redis connection (non-secret parts only) ──
+      # The password is NOT here — it's read from /run/secrets/redis_password
+      MD_REDIS_HOST: "md-redis:6379"      # hostname:port of the Redis container
+      MD_REDIS_DB: "0"                    # Redis database index
+
+    volumes:
+      # ⚠️  CHANGE this path to match your NAS filesystem!
+      # This is where all markdown files and metadata are stored.
+      - ./data:/data
+
+    networks:
+      - md_nas                            # internal: communicate with Redis
+      - apps                              # external: Traefik can reach this
+
+    labels:
+      - "project=md"
+      # Traefik routing is handled by a separate dynamic config file,
+      # not by Docker labels. Set traefik.enable=false to avoid conflicts.
+      - "traefik.enable=false"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s                   # give the Go server time to boot
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Redis Cache ──────────────────────────────────────────────────────
+  # In-memory cache for rendered HTML. Password-protected via Docker secrets.
+  # Listens on internal network only — NOT exposed to Traefik.
+  md-redis:
+    image: redis:7.4-alpine
+    container_name: md-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+    # Redis needs the password to start with --requirepass
+    secrets:
+      - redis_password
+
+    # Shell wrapper: read password from secret file, pass to redis-server.
+    # If the file is empty, Redis starts WITHOUT a password (dev mode).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        PASS=$$(cat /run/secrets/redis_password 2>/dev/null | tr -d '[:space:]')
+        exec redis-server \
+          --maxmemory 256mb \
+          --maxmemory-policy allkeys-lru \
+          --save 900 1 \
+          --save 300 10 \
+          --appendonly yes \
+          --appendfsync everysec \
+          --protected-mode yes \
+          --bind 0.0.0.0 \
+          --loglevel notice \
+          $${PASS:+--requirepass $$PASS}
+
+    volumes:
+      # ⚠️  CHANGE this path to match your NAS filesystem!
+      - ./redis_data:/data
+
+    networks:
+      - md_nas                            # internal only — NOT exposed to Traefik
+
+    # Optional: expose Redis on localhost for debugging (remove in production)
+    # ports:
+    #   - "127.0.0.1:6381:6379"
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    labels:
+      - "project=md"
+      - "component=cache"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# ── Networks ───────────────────────────────────────────────────────────
+networks:
+  # Private bridge: only md-api ↔ md-redis can communicate
+  md_nas:
+    driver: bridge
+    name: md_nas
+
+  # External network shared with Traefik (must already exist)
+  # Create it if needed:  docker network create apps
+  apps:
+    external: true
+    name: apps                            # ← must match your Traefik network name

@@ -1,0 +1,173 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# MD – Docker Compose for Cloud / VPS with Traefik Docker labels
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# This variant is for cloud VPS where Traefik discovers containers via
+# Docker labels (Docker provider) — no separate dynamic config file needed.
+#
+# Prerequisites:
+#   - Traefik v3 running with Docker provider enabled
+#   - An external Docker network "traefik_proxy" (or rename below)
+#   - A pre-built image pushed to your container registry (GHCR, Docker Hub…)
+#     OR build locally by replacing `image:` with a `build:` section
+#
+# Setup:
+#   1. Copy .env.example → .env and fill in:
+#        MD_DOMAIN=md.example.com
+#        REDIS_PASSWORD=<strong random password>
+#        APP_VERSION=latest (or a specific tag)
+#
+#   2. (Optional) Set MD_API_KEY in .env to protect all endpoints
+#
+#   3. Deploy:
+#        docker compose -f docker-compose.cloud.yml up -d
+#
+# Differences from docker-compose.nas.yml:
+#   - Uses pre-built image (no local build step)
+#   - Traefik routing via Docker labels (not file-based)
+#   - Redis password passed via ${REDIS_PASSWORD} env var (simpler for CI)
+#   - Docker named volumes instead of bind mounts
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+
+  # ── App (Go API + SvelteKit SPA) ─────────────────────────────────────
+  # Pre-built image from your container registry.
+  # To build locally instead, replace the `image:` line with:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.app
+  md-api:
+    # ⚠️  CHANGE this to your own registry path if you forked the project!
+    image: ghcr.io/cybergraphe-fr/md:${APP_VERSION:-latest}
+    container_name: md-app
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true            # prevent privilege escalation
+
+    environment:
+      # ── Server ──
+      MD_HTTP_ADDR: ":8080"               # internal listen address
+      MD_STORAGE_PATH: /data              # where files are stored (Docker volume)
+
+      # ── Redis connection ──
+      # Full redis:// URL including password. For production, consider
+      # migrating to Docker secrets (see docker-compose.nas.yml example).
+      MD_REDIS_URL: "redis://:${REDIS_PASSWORD}@md-redis:6379/0"
+
+      # ── API key (optional) ──
+      # If set, every request must include X-API-Key header.
+      # Leave empty or unset for public access.
+      MD_API_KEY: "${MD_API_KEY}"
+
+      # ── Public URLs ──
+      # ⚠️  Set MD_DOMAIN in your .env file!
+      MD_APP_URL: "https://${MD_DOMAIN}"
+      MD_CORS_ORIGINS: "https://${MD_DOMAIN}"
+
+      # ── Timezone ──
+      TZ: "${TZ:-UTC}"
+
+    volumes:
+      # Docker named volume for persistent markdown file storage.
+      # To use a bind mount instead:  ./data:/data
+      - md_data:/data
+
+    networks:
+      - md                                # internal: communicate with Redis
+      - traefik_proxy                     # external: Traefik routes traffic here
+
+    # ── Traefik Docker Labels ──────────────────────────────────────────
+    # These labels tell Traefik how to route HTTPS traffic to this container.
+    # Adjust the middleware names and certresolver to match your Traefik config.
+    labels:
+      - "traefik.enable=true"
+
+      # Tell Traefik which Docker network to use for health checks
+      - "traefik.docker.network=traefik_proxy"
+
+      # Routing rule: match requests for your domain
+      - "traefik.http.routers.md.rule=Host(`${MD_DOMAIN}`)"
+
+      # HTTPS only (entrypoint name must match your Traefik static config)
+      - "traefik.http.routers.md.entrypoints=websecure"
+
+      # Automatic TLS certificate via Let's Encrypt
+      # ⚠️  "letsencrypt" must match your Traefik certificatesResolvers name
+      - "traefik.http.routers.md.tls.certresolver=letsencrypt"
+
+      # CrowdSec bouncer middleware (remove this line if you don't use CrowdSec)
+      - "traefik.http.routers.md.middlewares=crowdsec-bouncer@file"
+
+      # Internal port the Go server listens on
+      - "traefik.http.services.md.loadbalancer.server.port=8080"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ── Redis Cache ──────────────────────────────────────────────────────
+  # In-memory cache for rendered HTML. Password-protected.
+  # Only exposed on the internal "md" network — not accessible from outside.
+  redis:
+    image: redis:7.4-alpine
+    container_name: md-redis
+    restart: unless-stopped
+
+    # Start Redis with a password and memory limits.
+    # ⚠️  Set REDIS_PASSWORD in your .env file!
+    # NOTE: The password appears in the process list. For better security,
+    #       use Docker secrets (see docker-compose.nas.yml example).
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+
+    volumes:
+      - redis_data:/data                  # persistent cache data
+
+    networks:
+      - md                                # internal only — NOT exposed to Traefik
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# ── Volumes ────────────────────────────────────────────────────────────
+# Docker named volumes persist data across container restarts.
+# To back up: docker run --rm -v md_data:/data -v $(pwd):/backup alpine tar czf /backup/md-data.tar.gz /data
+volumes:
+  md_data:                                # markdown files + metadata
+  redis_data:                             # Redis AOF + RDB snapshots
+
+# ── Networks ───────────────────────────────────────────────────────────
+networks:
+  # Private bridge: only md-api ↔ redis can communicate
+  md:
+    driver: bridge
+
+  # External network shared with Traefik (must already exist)
+  # Create it if needed:  docker network create traefik_proxy
+  traefik_proxy:
+    external: true
