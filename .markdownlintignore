@@ -1,0 +1,5 @@
+# User data files — not source code, should not be linted
+data/
+redis_data/
+web/node_modules/
+web/dist/
