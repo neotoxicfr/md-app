@@ -76,6 +76,17 @@ RENDER=$(curl -sf -X POST "$BASE/api/files/render" \
   -d '{"content":"**bold** and _italic_"}' 2>/dev/null || echo "")
 [[ "$RENDER" == *"<strong>bold</strong>"* ]] && check "Render markdown" "PASS" || check "Render markdown" "FAIL"
 
+# 9b. Render malformed markdown normalization regression
+MALFORMED='• Parent item\n  ◦ Child item\nText before ## 4. Section Title\n• Last item'
+RENDER_MAL=$(curl -sf -X POST "$BASE/api/files/render" \
+  -H "Content-Type: application/json" \
+  -d "{\"content\":\"$MALFORMED\"}" 2>/dev/null || echo "")
+if [[ "$RENDER_MAL" == *"<h2"* && "$RENDER_MAL" == *"<li>"* && "$RENDER_MAL" != *"## 4. Section Title"* ]]; then
+  check "Render malformed markdown normalization" "PASS"
+else
+  check "Render malformed markdown normalization" "FAIL"
+fi
+
 # 10. Export HTML
 EXP_HTML=$(curl -sf -o /dev/null -w "%{http_code}" "$BASE/api/files/$FILE_ID/export/html" 2>/dev/null || echo "000")
 [[ "$EXP_HTML" == "200" ]] && check "Export HTML" "PASS" || check "Export HTML" "HTTP $EXP_HTML"
@@ -123,6 +134,16 @@ RAW_PDF=$(curl -sf -o /dev/null -w "%{http_code}" -X POST "$BASE/api/export/raw/
   -H "Content-Type: application/json" \
   -d '{"content":"# Raw PDF\nNo file needed","name":"raw-pdf-test"}' 2>/dev/null || echo "000")
 [[ "$RAW_PDF" == "200" ]] && check "Raw export PDF (no save)" "PASS" || check "Raw export PDF" "HTTP $RAW_PDF"
+
+# 16e. Raw export malformed markdown — RST (assert normalized heading/list structure)
+RAW_RST=$(curl -sf -X POST "$BASE/api/export/raw/rst" \
+  -H "Content-Type: application/json" \
+  -d "{\"content\":\"$MALFORMED\",\"name\":\"raw-rst-mal\"}" 2>/dev/null || echo "")
+if [[ "$RAW_RST" == *"Section Title"* && "$RAW_RST" == *"===="* && "$RAW_RST" == *"-  Parent item"* ]]; then
+  check "Raw export malformed markdown (RST)" "PASS"
+else
+  check "Raw export malformed markdown (RST)" "FAIL"
+fi
 
 # 16d. Font picker in bundle
 if [[ -n "$JS_URL" ]]; then

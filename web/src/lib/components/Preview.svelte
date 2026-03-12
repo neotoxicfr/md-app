@@ -102,6 +102,66 @@
     const out: string[] = [];
     let inFence = false;
 
+    const normalizeInlineTableLine = (line: string): string[] | null => {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.includes('||') || (trimmed.match(/\|/g) ?? []).length < 4) {
+        return null;
+      }
+
+      let normalized = line.replaceAll('—', '-').replaceAll('–', '-');
+      const outRows: string[] = [];
+      let hadPrefix = false;
+
+      const firstPipe = normalized.indexOf('|');
+      if (firstPipe > 0) {
+        const prefix = normalized.slice(0, firstPipe).trim();
+        if (prefix) {
+          outRows.push(prefix);
+          hadPrefix = true;
+        }
+        normalized = normalized.slice(firstPipe);
+      }
+
+      if (hadPrefix) outRows.push('');
+
+      let tableRows = 0;
+      for (const chunk of normalized.split('||')) {
+        let row = chunk.trim();
+        if (!row) continue;
+        if ((row.match(/\|/g) ?? []).length < 2) {
+          outRows.push(row);
+          continue;
+        }
+        if (!row.startsWith('|')) row = `| ${row}`;
+        if (!row.endsWith('|')) row = `${row} |`;
+
+        const inner = row.replace(/^\|/, '').replace(/\|$/, '').trim();
+        if (/^[\s|:\-]+$/.test(inner)) {
+          const cells = row
+            .replace(/^\|/, '')
+            .replace(/\|$/, '')
+            .split('|')
+            .map((raw) => {
+              const c = raw.trim();
+              const left = c.startsWith(':');
+              const right = c.endsWith(':');
+              let sep = '---';
+              if (left) sep = `:${sep}`;
+              if (right) sep = `${sep}:`;
+              return sep;
+            });
+          row = `| ${cells.join(' | ')} |`;
+        }
+
+        outRows.push(row);
+        tableRows++;
+      }
+
+      if (tableRows < 2) return null;
+      outRows.push('');
+      return outRows;
+    };
+
     for (let line of lines) {
       const trimmed = line.trim();
 
@@ -137,7 +197,11 @@
         line = line.replace(/\s+◦\s+/g, '\n  - ');
       }
 
-      out.push(...line.split('\n'));
+      for (const segment of line.split('\n')) {
+        const tableLines = normalizeInlineTableLine(segment);
+        if (tableLines) out.push(...tableLines);
+        else out.push(segment);
+      }
     }
 
     return out.join('\n');
