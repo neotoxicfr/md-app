@@ -25,7 +25,10 @@ type Config struct {
 	// Pandoc binary path (for multi-format export)
 	PandocBinary string
 
-	// Chromium binary path (for PDF export)
+	// WeasyPrint binary path (for PDF export, called after Pandoc HTML stage)
+	WeasyprintBinary string
+
+	// Chromium binary path (legacy, unused – kept for future use)
 	ChromiumBinary string
 
 	// App
@@ -77,8 +80,9 @@ func Load() (*Config, error) {
 		StoragePath:    getEnv("MD_STORAGE_PATH", "/data/files"),
 		RedisURL:       buildRedisURL(),
 		APIKey:         getSecretOrEnv("api_key", "MD_API_KEY", ""),
-		PandocBinary:   getEnv("MD_PANDOC_BINARY", "pandoc"),
-		ChromiumBinary: getEnv("MD_CHROMIUM_BINARY", "chromium-browser"),
+		PandocBinary:     getEnv("MD_PANDOC_BINARY", "pandoc"),
+		WeasyprintBinary: getEnv("MD_WEASYPRINT_BINARY", "weasyprint"),
+		ChromiumBinary:   getEnv("MD_CHROMIUM_BINARY", "chromium-browser"),
 		AppURL:         getEnv("MD_APP_URL", "http://localhost:8080"),
 		MaxFileSizeMB:  getEnvInt64("MD_MAX_FILE_SIZE_MB", 10),
 	}

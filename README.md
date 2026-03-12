@@ -131,6 +131,7 @@ All configuration is done via **environment variables**.
 | `MD_CORS_ORIGINS` | `*` | Comma-separated allowed CORS origins |
 | `MD_MAX_FILE_SIZE_MB` | `10` | Max upload size in MB |
 | `MD_PANDOC_BINARY` | `pandoc` | Path to pandoc binary |
+| `MD_WEASYPRINT_BINARY` | `weasyprint` | Path to WeasyPrint binary (PDF export) |
 | `MD_OIDC_ISSUER` | _(empty)_ | OIDC issuer URL (empty = no auth). Enables SSO |
 | `MD_OIDC_CLIENT_ID` | _(empty)_ | OIDC client ID |
 | `MD_OIDC_CLIENT_SECRET` | _(empty)_ | OIDC client secret |
@@ -202,7 +203,8 @@ or `?api_key=your-key` query param.
 | MediaWiki | `.wiki` | Pandoc |
 | Plain text | `.txt` | Pandoc |
 
-> **Note**: PDF and non-HTML formats require `pandoc` (and `weasyprint` for PDF) to be present in the runtime environment. These are pre-installed in the production Docker image.
+> **Note**: PDF export uses a two-step pipeline: Pandoc converts Markdown to a self-contained HTML file (CSS embedded inline), then WeasyPrint renders it to PDF. Both `pandoc` and `weasyprint` must be present in the runtime environment — they are pre-installed in the production Docker image. Non-PDF format exports require only `pandoc`.
+> The document title in exported files comes exclusively from the document's own content (YAML frontmatter `title:` or the first heading) — the session filename is never injected.
 
 ---
 

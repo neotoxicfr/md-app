@@ -115,24 +115,31 @@ func (h *exportHandler) export(w http.ResponseWriter, r *http.Request) {
 		inputFile,
 	}
 
-	// PDF via Chromium/wkhtmltopdf through HTML intermediate
+	// PDF: two-step pipeline (Pandoc → HTML → WeasyPrint → PDF)
 	if format == "pdf" {
-		args = h.buildPDFArgs(inputFile, outputFile, fwc.Name)
-	}
-
-	cmd := exec.CommandContext(ctx, h.cfg.PandocBinary, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		slog.Error("pandoc export failed",
-			"format", format,
-			"file", fwc.Name,
-			"stderr", stderr.String(),
-			"error", err,
-		)
-		writeError(w, http.StatusInternalServerError, "export conversion failed: "+stderr.String())
-		return
+		htmlFile := filepath.Join(tmpDir, "output.html")
+		if err := h.runPDFExport(ctx, inputFile, htmlFile, outputFile); err != nil {
+			slog.Error("pdf export failed",
+				"file", fwc.Name,
+				"error", err,
+			)
+			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			return
+		}
+	} else {
+		cmd := exec.CommandContext(ctx, h.cfg.PandocBinary, args...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			slog.Error("pandoc export failed",
+				"format", format,
+				"file", fwc.Name,
+				"stderr", stderr.String(),
+				"error", err,
+			)
+			writeError(w, http.StatusInternalServerError, "export conversion failed: "+stderr.String())
+			return
+		}
 	}
 
 	output, err := os.ReadFile(outputFile)
@@ -150,17 +157,46 @@ func (h *exportHandler) export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *exportHandler) buildPDFArgs(inputFile, outputFile, title string) []string {
-	return []string{
+	// Kept for reference — replaced by runPDFExport (two-step pipeline).
+	// Not called directly anymore.
+	return nil
+}
+
+// runPDFExport converts Markdown to PDF via a two-step pipeline:
+//
+//  1. Pandoc converts Markdown → self-contained HTML (CSS embedded inline
+//     via --embed-resources so WeasyPrint has no external file dependencies).
+//  2. WeasyPrint renders the standalone HTML → PDF.
+//
+// No filename/title metadata is injected; any title in the output comes
+// exclusively from the document's own content (YAML frontmatter or headings).
+func (h *exportHandler) runPDFExport(ctx context.Context, inputFile, htmlFile, outputFile string) error {
+	// Step 1: Pandoc → self-contained HTML
+	pandocArgs := []string{
 		"-f", "markdown+emoji+smart+autolink_bare_uris+footnotes+task_lists+definition_lists+raw_html",
 		"-t", "html5",
 		"--standalone",
+		"--embed-resources", // inline CSS/images so WeasyPrint needs no external files
 		"--highlight-style", "zenburn",
-		"--pdf-engine", "weasyprint",
-		"--metadata", "title=" + title,
 		"--css", "/app/pandoc/print.css",
-		"-o", outputFile,
+		"-o", htmlFile,
 		inputFile,
 	}
+	var buf1 bytes.Buffer
+	cmd1 := exec.CommandContext(ctx, h.cfg.PandocBinary, pandocArgs...)
+	cmd1.Stderr = &buf1
+	if err := cmd1.Run(); err != nil {
+		return fmt.Errorf("pandoc html stage: %w — %s", err, strings.TrimSpace(buf1.String()))
+	}
+
+	// Step 2: WeasyPrint → PDF
+	var buf2 bytes.Buffer
+	cmd2 := exec.CommandContext(ctx, h.cfg.WeasyprintBinary, htmlFile, outputFile)
+	cmd2.Stderr = &buf2
+	if err := cmd2.Run(); err != nil {
+		return fmt.Errorf("weasyprint stage: %w — %s", err, strings.TrimSpace(buf2.String()))
+	}
+	return nil
 }
 
 // GET /api/export/formats  — list available formats
@@ -228,22 +264,29 @@ func (h *exportHandler) exportRaw(w http.ResponseWriter, r *http.Request) {
 		inputFile,
 	}
 
+	// PDF: two-step pipeline (Pandoc → HTML → WeasyPrint → PDF)
 	if format == "pdf" {
-		args = h.buildPDFArgs(inputFile, outputFile, body.Name)
-	}
-
-	cmd := exec.CommandContext(ctx, h.cfg.PandocBinary, args...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		slog.Error("pandoc export raw failed",
-			"format", format,
-			"stderr", stderr.String(),
-			"error", err,
-		)
-		writeError(w, http.StatusInternalServerError, "export conversion failed: "+stderr.String())
-		return
+		htmlFile := filepath.Join(tmpDir, "output.html")
+		if err := h.runPDFExport(ctx, inputFile, htmlFile, outputFile); err != nil {
+			slog.Error("pdf export raw failed",
+				"error", err,
+			)
+			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			return
+		}
+	} else {
+		cmd := exec.CommandContext(ctx, h.cfg.PandocBinary, args...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			slog.Error("pandoc export raw failed",
+				"format", format,
+				"stderr", stderr.String(),
+				"error", err,
+			)
+			writeError(w, http.StatusInternalServerError, "export conversion failed: "+stderr.String())
+			return
+		}
 	}
 
 	output, err := os.ReadFile(outputFile)
