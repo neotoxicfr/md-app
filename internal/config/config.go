@@ -76,15 +76,15 @@ func buildRedisURL() string {
 // Load reads configuration from Docker secrets + environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
-		HTTPAddr:       getEnv("MD_HTTP_ADDR", ":8080"),
-		StoragePath:    getEnv("MD_STORAGE_PATH", "/data/files"),
-		RedisURL:       buildRedisURL(),
-		APIKey:         getSecretOrEnv("api_key", "MD_API_KEY", ""),
+		HTTPAddr:         getEnv("MD_HTTP_ADDR", ":8080"),
+		StoragePath:      getEnv("MD_STORAGE_PATH", "/data/files"),
+		RedisURL:         buildRedisURL(),
+		APIKey:           getSecretOrEnv("api_key", "MD_API_KEY", ""),
 		PandocBinary:     getEnv("MD_PANDOC_BINARY", "pandoc"),
 		WeasyprintBinary: getEnv("MD_WEASYPRINT_BINARY", "weasyprint"),
 		ChromiumBinary:   getEnv("MD_CHROMIUM_BINARY", "chromium-browser"),
-		AppURL:         getEnv("MD_APP_URL", "http://localhost:8080"),
-		MaxFileSizeMB:  getEnvInt64("MD_MAX_FILE_SIZE_MB", 10),
+		AppURL:           getEnv("MD_APP_URL", "http://localhost:8080"),
+		MaxFileSizeMB:    getEnvInt64("MD_MAX_FILE_SIZE_MB", 10),
 	}
 
 	// CORS allowed origins

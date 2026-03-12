@@ -116,12 +116,14 @@ export const api = {
     return `${BASE}/files/${id}/export/html`;
   },
 
-  exportFormat(id: string, format: string): string {
-    return `${BASE}/files/${id}/export/${format}`;
+  exportFormat(id: string, format: string, margin?: string): string {
+    const qs = margin ? `?margin=${margin}` : '';
+    return `${BASE}/files/${id}/export/${format}${qs}`;
   },
 
-  exportRawFormat(format: string): string {
-    return `${BASE}/export/raw/${format}`;
+  exportRawFormat(format: string, margin?: string): string {
+    const qs = margin ? `?margin=${margin}` : '';
+    return `${BASE}/export/raw/${format}${qs}`;
   },
 
   async importFile(file: File): Promise<FileWithContent> {

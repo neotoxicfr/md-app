@@ -23,6 +23,13 @@
 
   let exporting: string | null = $state(null);
   let exportError: string | null = $state(null);
+  let pdfMargin: string = $state('standard');
+
+  const marginOptions = [
+    { id: 'standard', label: 'Standard', desc: '2.5 cm' },
+    { id: 'narrow', label: 'Narrow', desc: '1.5 cm' },
+    { id: 'wide', label: 'Wide', desc: '3.5 cm' },
+  ];
 
   function downloadBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
@@ -59,7 +66,8 @@
           a.download = `${name}${ext}`;
           a.click();
         } else {
-          const res = await fetch(api.exportFormat(id, formatId), { method: 'POST' });
+          const margin = formatId === 'pdf' ? pdfMargin : undefined;
+          const res = await fetch(api.exportFormat(id, formatId, margin), { method: 'POST' });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ error: res.statusText }));
             throw new Error(err.error ?? `Export failed: HTTP ${res.status}`);
@@ -75,7 +83,8 @@
           ], { type: 'text/html' });
           downloadBlob(blob, `${name}${ext}`);
         } else {
-          const res = await fetch(api.exportRawFormat(formatId), {
+          const margin = formatId === 'pdf' ? pdfMargin : undefined;
+          const res = await fetch(api.exportRawFormat(formatId, margin), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content, name }),
@@ -145,6 +154,22 @@
           <span>⚠</span> {exportError}
         </div>
       {/if}
+
+      <div class="margin-selector">
+        <span class="margin-label">PDF margins</span>
+        <div class="margin-options">
+          {#each marginOptions as opt}
+            <button
+              class="margin-btn"
+              class:active={pdfMargin === opt.id}
+              onclick={() => pdfMargin = opt.id}
+            >
+              <span class="margin-btn-label">{opt.label}</span>
+              <span class="margin-btn-desc">{opt.desc}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
 
       <div class="formats-grid">
         {#each formats as fmt}
@@ -264,6 +289,54 @@
     font-size: 13px;
     font-family: var(--font-ui);
   }
+
+  .margin-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .margin-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .margin-options {
+    display: flex;
+    gap: 0.35rem;
+    flex: 1;
+  }
+
+  .margin-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-ui);
+    color: var(--text-secondary);
+  }
+  .margin-btn:hover { background: var(--bg-hover); border-color: var(--border); }
+  .margin-btn.active {
+    background: var(--accent-surface);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .margin-btn-label { font-size: 12px; font-weight: 600; }
+  .margin-btn-desc { font-size: 10px; opacity: 0.7; }
 
   .formats-grid {
     display: flex;

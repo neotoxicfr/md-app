@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
    MD – PDF stylesheet for WeasyPrint
-   Optimized for clean A4 output with proper pagination
+   Comprehensive A4 output — full GFM + extended markdown support
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Page layout ───────────────────────────────────────────── */
+/* ── Page layout (default: standard margins) ───────────────── */
 @page {
   size: A4;
   margin: 2.2cm 2.5cm 2.5cm 2.5cm;
@@ -28,7 +28,10 @@
   --color-accent: #2563eb;
   --color-border: #d1d5db;
   --color-code-bg: #1e1e2e;
+  --color-code-fg: #cdd6f4;
   --color-quote-bg: #eff6ff;
+  --color-mark-bg: #fef3c7;
+  --color-mark-fg: #92400e;
   --font-serif: 'Liberation Serif', 'DejaVu Serif', Georgia, serif;
   --font-sans: 'Liberation Sans', 'DejaVu Sans', sans-serif;
   --font-mono: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
@@ -46,36 +49,13 @@ body {
   padding: 0;
 }
 
-/* ── Title block (Pandoc --metadata title) ─────────────────── */
-#title-block-header {
-  margin-bottom: 2em;
-  padding-bottom: 1em;
-  border-bottom: 2px solid var(--color-border);
-}
-#title-block-header .title {
-  font-family: var(--font-sans);
-  font-size: 2.2rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0 0 0.3em;
-  color: #111827;
-}
-#title-block-header .subtitle {
-  font-size: 1.2rem;
-  color: var(--color-muted);
-  margin: 0;
-}
-#title-block-header .date,
-#title-block-header .author {
-  font-size: 0.95rem;
-  color: var(--color-muted);
-}
+/* ── Suppress Pandoc auto-generated title block ────────────── */
+/* When no --metadata title is set, Pandoc generates an empty or
+   filename-based title block.  We hide it to avoid duplication
+   when the document already contains its own heading.            */
+#title-block-header { display: none; }
 
 /* ── Headings ──────────────────────────────────────────────── */
-/* NOTE: break-after:avoid is intentionally OMITTED on headings.
-   WeasyPrint cannot look ahead to measure the next element's size,
-   so a heading followed by a large table/code block causes a near-
-   empty page.  Letting headings flow naturally avoids that issue. */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-weight: 600;
@@ -86,16 +66,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 h1 {
   font-size: 1.8rem;
+  font-weight: 700;
   border-bottom: 2px solid var(--color-border);
   padding-bottom: 0.35em;
 }
-h2 { font-size: 1.45rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25em; }
+h2 {
+  font-size: 1.45rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.25em;
+}
 h3 { font-size: 1.2rem; }
 h4 { font-size: 1.05rem; }
 h5 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; }
 h6 { font-size: 0.9rem; color: var(--color-muted); }
 
-/* ── Paragraphs & inline ───────────────────────────────────── */
+/* ── Paragraphs & inline text ──────────────────────────────── */
 p {
   margin: 0.75em 0;
   orphans: 3;
@@ -103,6 +88,7 @@ p {
   text-align: justify;
   hyphens: auto;
 }
+
 a {
   color: var(--color-accent);
   text-decoration: underline;
@@ -114,21 +100,56 @@ a[href^="http"]::after {
   color: var(--color-muted);
   word-break: break-all;
 }
-/* Don't show URL for anchor links */
 a[href^="#"]::after { content: none; }
 
 strong { font-weight: 700; }
 em { font-style: italic; }
 
+/* Strikethrough (~~text~~) */
+del, s {
+  text-decoration: line-through;
+  color: var(--color-muted);
+}
+
+/* Superscript / Subscript */
+sup { font-size: 0.75em; vertical-align: super; }
+sub { font-size: 0.75em; vertical-align: sub; }
+
+/* Highlight / Mark */
+mark {
+  background: var(--color-mark-bg);
+  color: var(--color-mark-fg);
+  padding: 0.05em 0.2em;
+  border-radius: 2px;
+}
+
+/* Keyboard key */
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: #f3f4f6;
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+  color: #1f2937;
+}
+
+/* Abbreviation */
+abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
 /* ── Lists ─────────────────────────────────────────────────── */
 ul {
   list-style-type: disc;
-  margin: 0.7rem 0 0.7rem 1.75rem;
+  margin: 0.75em 0 0.75em 1.75rem;
   padding-left: 0.25rem;
 }
 ol {
   list-style-type: decimal;
-  margin: 0.7rem 0 0.7rem 1.75rem;
+  margin: 0.75em 0 0.75em 1.75rem;
   padding-left: 0.25rem;
 }
 ul ul   { list-style-type: circle; }
@@ -137,7 +158,25 @@ li {
   margin: 0.3rem 0;
   padding-left: 0.1rem;
 }
+li > p { margin: 0.3em 0; }
 li > ul, li > ol { margin-top: 0.2rem; margin-bottom: 0.1rem; }
+
+/* Task lists (GFM checkboxes) */
+ul.task-list { list-style: none; margin-left: 0; padding-left: 0; }
+ul.task-list li { position: relative; padding-left: 1.5em; }
+input[type="checkbox"] {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.4em;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
+}
+
+/* Definition lists */
+dl { margin: 1em 0; }
+dt { font-weight: 700; margin-top: 0.8em; }
+dd { margin-left: 1.5em; margin-bottom: 0.4em; }
 
 /* ── Code ──────────────────────────────────────────────────── */
 code {
@@ -148,12 +187,13 @@ code {
   border-radius: 3px;
   color: #1f2937;
 }
+
 pre {
   font-family: var(--font-mono);
   font-size: 0.78em;
   line-height: 1.55;
   background: var(--color-code-bg);
-  color: #cdd6f4;
+  color: var(--color-code-fg);
   padding: 0.9em 1.1em;
   border-radius: 5px;
   break-inside: avoid;
@@ -169,6 +209,15 @@ pre code {
   border-radius: 0;
 }
 
+/* Pandoc sourceCode wrapper (syntax highlight) */
+div.sourceCode {
+  break-inside: avoid;
+  margin: 1em 0;
+}
+div.sourceCode pre {
+  margin: 0;
+}
+
 /* ── Blockquotes ───────────────────────────────────────────── */
 blockquote {
   border-left: 3.5px solid #93c5fd;
@@ -178,20 +227,22 @@ blockquote {
   color: #1e40af;
   border-radius: 0 4px 4px 0;
   font-style: italic;
-  /* break-inside: avoid removed — long quotes may span pages */
 }
 blockquote p { text-align: left; }
+blockquote blockquote {
+  border-left-color: #bfdbfe;
+  margin-left: 0.5em;
+}
 
 /* ── Tables ────────────────────────────────────────────────── */
-/* Large tables are ALLOWED to break across pages; only individual
-   rows are protected so content doesn't split mid-row.           */
 table {
   border-collapse: collapse;
   width: 100%;
   margin: 1em 0;
   font-size: 0.88em;
+  border: 1px solid var(--color-border);
 }
-thead { display: table-header-group; }  /* repeat header on each page */
+thead { display: table-header-group; }
 tr { break-inside: avoid; }
 th, td {
   border: 1px solid var(--color-border);
@@ -204,22 +255,19 @@ th {
   font-weight: 600;
   font-size: 0.9em;
 }
-tr:nth-child(even) { background: #f9fafb; }
+tr:nth-child(even) td { background: #f9fafb; }
+/* Ensure empty cells have visible borders */
+td:empty::after { content: '\00a0'; }
 
-/* ── Lists ─────────────────────────────────────────────────── */
-ul, ol { margin: 0.75em 0 0.75em 1.5em; }
-li { margin: 0.25em 0; }
-li > p { margin: 0.3em 0; }
-
-/* Task lists */
-input[type="checkbox"] {
-  margin-right: 0.4em;
+/* Table caption (Pandoc table_captions extension) */
+caption {
+  caption-side: bottom;
+  font-size: 0.85em;
+  color: var(--color-muted);
+  font-style: italic;
+  padding: 0.5em 0;
+  text-align: center;
 }
-
-/* Definition lists */
-dl { margin: 1em 0; }
-dt { font-weight: 600; margin-top: 0.8em; }
-dd { margin-left: 1.5em; margin-bottom: 0.4em; }
 
 /* ── Horizontal rule ───────────────────────────────────────── */
 hr {
@@ -255,6 +303,16 @@ section[role="doc-endnotes"] {
   padding-top: 0.8em;
 }
 .footnote-ref { font-size: 0.75em; vertical-align: super; }
+a.footnote-back { text-decoration: none; }
+
+/* ── Math (KaTeX / MathJax fallback) ──────────────────────── */
+.math, .math.display {
+  font-family: var(--font-serif);
+  font-size: 1em;
+  text-align: center;
+  margin: 0.8em 0;
+}
+.math.inline { display: inline; }
 
 /* ── Page break support ────────────────────────────────────── */
 .pagebreak {
@@ -266,11 +324,8 @@ section[role="doc-endnotes"] {
   visibility: hidden;
 }
 
-/* ── Pandoc syntax highlight overrides (keep colors, fix layout) ── */
-div.sourceCode {
-  break-inside: avoid;
-  margin: 1em 0;
-}
-div.sourceCode pre {
-  margin: 0;
+/* ── Emoji (rendered as text) ──────────────────────────────── */
+.emoji {
+  font-style: normal;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }

@@ -34,6 +34,7 @@ It is distributed under the **MIT licence** and designed to run on your own infr
 | **View modes** | Split (editor + preview), Editor only, Preview only |
 | **Sidebar** | Collapsible file manager panel — toggle via toolbar button, state persisted in localStorage |
 | **Export** | HTML, PDF (via Pandoc + WeasyPrint), DOCX, ODT, EPUB, LaTeX, RST, AsciiDoc, Textile, MediaWiki, Plain text |
+| **PDF margins** | Standard (2.5 cm), Narrow (1.5 cm), Wide (3.5 cm), or custom (per-axis in cm) — selectable in export modal |
 | **Export without save** | Export the current editor content directly — no need to save first |
 | **Import** | Upload `.md`, `.txt`, `.html` files via UI drag-and-drop or API |
 | **Print** | Native browser print with dedicated print stylesheet |
@@ -157,9 +158,9 @@ Base URL: `https://your-domain/api`
 | `GET` | `/api/files/:id/render` | Get rendered HTML (cached) |
 | `POST` | `/api/files/render` | Ad-hoc render `{content}` |
 | `GET` | `/api/files/:id/export/html` | Export as standalone HTML |
-| `POST` | `/api/files/:id/export/:format` | Export (pdf, docx, odt, epub, latex, rst, asciidoc, textile, mediawiki, plain) |
+| `POST` | `/api/files/:id/export/:format` | Export (pdf, docx, odt, epub, latex, rst, asciidoc, textile, mediawiki, plain). PDF accepts `?margin=standard\|narrow\|wide` or `?mt=&mr=&mb=&ml=` (cm) |
 | `POST` | `/api/files/import` | Import via multipart form (`file` field) |
-| `POST` | `/api/export/raw/:format` | Export raw content without saving `{content, name}` |
+| `POST` | `/api/export/raw/:format` | Export raw content without saving `{content, name}`. PDF accepts same margin params |
 | `GET` | `/api/export/formats` | List supported export formats |
 | `GET` | `/api/templates` | List 8 built-in templates |
 | `GET` | `/api/templates/:id` | Get template with full content |
