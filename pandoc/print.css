@@ -1,88 +1,131 @@
-/* ═══════════════════════════════════════════════════════════
-   MD – PDF stylesheet for WeasyPrint
-   Comprehensive A4 output — full GFM + extended markdown support
-   ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+   MD – Premium PDF stylesheet for WeasyPrint
+   Modern A4 output — full GFM + extended markdown, production-grade
+   ───────────────────────────────────────────────────────────────────────
+   All values are hardcoded (no CSS variables) for maximum WeasyPrint
+   compatibility across versions.  Designed for rich, professional
+   document output at 2026 enterprise standards.
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Page layout (default: standard margins) ───────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § PAGE LAYOUT
+   ═══════════════════════════════════════════════════════════════════════ */
+
 @page {
   size: A4;
   margin: 2.2cm 2.5cm 2.5cm 2.5cm;
 
   @bottom-center {
     content: counter(page);
-    font-family: 'Liberation Sans', sans-serif;
-    font-size: 9pt;
+    font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
+    font-size: 8.5pt;
     color: #9ca3af;
+  }
+
+  @bottom-right {
+    content: "";
+    border-top: 0.5pt solid #e5e7eb;
+    width: 100%;
   }
 }
 
 @page:first {
-  margin-top: 3cm;
+  margin-top: 3.2cm;
   @bottom-center { content: none; }
+  @bottom-right  { content: none; }
 }
 
-/* ── Base ──────────────────────────────────────────────────── */
-:root {
-  --color-text: #1a1a1a;
-  --color-muted: #6b7280;
-  --color-accent: #2563eb;
-  --color-border: #d1d5db;
-  --color-code-bg: #1e1e2e;
-  --color-code-fg: #cdd6f4;
-  --color-quote-bg: #eff6ff;
-  --color-mark-bg: #fef3c7;
-  --color-mark-fg: #92400e;
-  --font-serif: 'Liberation Serif', 'DejaVu Serif', Georgia, serif;
-  --font-sans: 'Liberation Sans', 'DejaVu Sans', sans-serif;
-  --font-mono: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
-}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § BASE TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════════════ */
 
 * { box-sizing: border-box; }
 
 body {
-  font-family: var(--font-serif);
-  font-size: 11pt;
-  line-height: 1.75;
-  color: var(--color-text);
-  background: white;
+  font-family: 'Liberation Serif', 'DejaVu Serif', Georgia, serif;
+  font-size: 10.5pt;
+  line-height: 1.7;
+  color: #1a1a2e;
+  background: #ffffff;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ── Suppress Pandoc auto-generated title block ────────────── */
-/* When no --metadata title is set, Pandoc generates an empty or
-   filename-based title block.  We hide it to avoid duplication
-   when the document already contains its own heading.            */
+/* ── Suppress Pandoc auto-generated title block ────────────────────── */
 #title-block-header { display: none; }
 
-/* ── Headings ──────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § HEADINGS
+   ═══════════════════════════════════════════════════════════════════════ */
+
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
+  font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
   font-weight: 600;
-  line-height: 1.3;
-  margin: 1.5em 0 0.5em;
+  line-height: 1.25;
+  color: #0f172a;
+  margin-top: 1.6em;
+  margin-bottom: 0.5em;
   orphans: 3;
   widows: 3;
+  break-after: avoid;
 }
-h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  border-bottom: 2px solid var(--color-border);
-  padding-bottom: 0.35em;
-}
-h2 {
-  font-size: 1.45rem;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0.25em;
-}
-h3 { font-size: 1.2rem; }
-h4 { font-size: 1.05rem; }
-h5 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; }
-h6 { font-size: 0.9rem; color: var(--color-muted); }
 
-/* ── Paragraphs & inline text ──────────────────────────────── */
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  border-bottom: 2.5pt solid #2563eb;
+  padding-bottom: 0.3em;
+  margin-top: 0;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  border-bottom: 1pt solid #cbd5e1;
+  padding-bottom: 0.2em;
+}
+
+h3 {
+  font-size: 13pt;
+  font-weight: 600;
+  color: #334155;
+}
+
+h4 {
+  font-size: 11.5pt;
+  font-weight: 600;
+  color: #475569;
+}
+
+h5 {
+  font-size: 10pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+h6 {
+  font-size: 9.5pt;
+  font-weight: 600;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § PARAGRAPHS & INLINE TEXT
+   ═══════════════════════════════════════════════════════════════════════ */
+
 p {
-  margin: 0.75em 0;
+  margin: 0.65em 0;
   orphans: 3;
   widows: 3;
   text-align: justify;
@@ -90,126 +133,164 @@ p {
 }
 
 a {
-  color: var(--color-accent);
+  color: #2563eb;
   text-decoration: underline;
+  text-decoration-color: #93c5fd;
+  text-underline-offset: 2px;
 }
-/* Show URLs in print for external links */
+
+/* Print URLs for external links */
 a[href^="http"]::after {
-  content: " [" attr(href) "]";
-  font-size: 0.75em;
-  color: var(--color-muted);
+  content: " (" attr(href) ")";
+  font-size: 0.7em;
+  color: #94a3b8;
   word-break: break-all;
+  text-decoration: none;
 }
 a[href^="#"]::after { content: none; }
 
 strong { font-weight: 700; }
 em { font-style: italic; }
 
-/* Strikethrough (~~text~~) */
+/* Strikethrough */
 del, s {
   text-decoration: line-through;
-  color: var(--color-muted);
+  text-decoration-color: #ef4444;
+  color: #94a3b8;
 }
 
 /* Superscript / Subscript */
-sup { font-size: 0.75em; vertical-align: super; }
-sub { font-size: 0.75em; vertical-align: sub; }
+sup { font-size: 0.72em; vertical-align: super; line-height: 0; }
+sub { font-size: 0.72em; vertical-align: sub; line-height: 0; }
 
 /* Highlight / Mark */
 mark {
-  background: var(--color-mark-bg);
-  color: var(--color-mark-fg);
-  padding: 0.05em 0.2em;
-  border-radius: 2px;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.05em 0.25em;
+  border-radius: 2pt;
 }
 
 /* Keyboard key */
 kbd {
-  font-family: var(--font-mono);
-  font-size: 0.82em;
-  background: #f3f4f6;
-  border: 1px solid var(--color-border);
-  border-bottom-width: 2px;
-  border-radius: 3px;
+  font-family: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  font-size: 0.8em;
+  background: #f1f5f9;
+  border: 0.5pt solid #cbd5e1;
+  border-bottom-width: 1.5pt;
+  border-radius: 3pt;
   padding: 0.1em 0.4em;
-  color: #1f2937;
+  color: #1e293b;
 }
 
 /* Abbreviation */
 abbr[title] {
-  text-decoration: underline dotted;
-  cursor: help;
+  text-decoration: underline dotted #94a3b8;
+  text-underline-offset: 2px;
 }
 
-/* ── Lists ─────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § LISTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
 ul {
   list-style-type: disc;
-  margin: 0.75em 0 0.75em 1.75rem;
-  padding-left: 0.25rem;
+  margin: 0.6em 0 0.6em 1.6rem;
+  padding-left: 0.3rem;
 }
+
 ol {
   list-style-type: decimal;
-  margin: 0.75em 0 0.75em 1.75rem;
-  padding-left: 0.25rem;
+  margin: 0.6em 0 0.6em 1.6rem;
+  padding-left: 0.3rem;
 }
-ul ul   { list-style-type: circle; }
+
+ul ul   { list-style-type: circle; margin-top: 0.15em; margin-bottom: 0.15em; }
 ul ul ul { list-style-type: square; }
+
 li {
-  margin: 0.3rem 0;
+  margin: 0.25rem 0;
   padding-left: 0.1rem;
 }
-li > p { margin: 0.3em 0; }
-li > ul, li > ol { margin-top: 0.2rem; margin-bottom: 0.1rem; }
 
-/* Task lists (GFM checkboxes) */
+li > p { margin: 0.2em 0; }
+li > ul, li > ol { margin-top: 0.15rem; margin-bottom: 0.1rem; }
+
+/* ── Task lists (GFM checkboxes) ──────────────────────────────────── */
 ul.task-list { list-style: none; margin-left: 0; padding-left: 0; }
-ul.task-list li { position: relative; padding-left: 1.5em; }
+ul.task-list li { position: relative; padding-left: 1.6em; }
+
 input[type="checkbox"] {
-  width: 0.9em;
-  height: 0.9em;
+  width: 0.85em;
+  height: 0.85em;
   margin-right: 0.4em;
   vertical-align: middle;
   position: relative;
   top: -0.05em;
+  accent-color: #2563eb;
 }
 
-/* Definition lists */
-dl { margin: 1em 0; }
-dt { font-weight: 700; margin-top: 0.8em; }
-dd { margin-left: 1.5em; margin-bottom: 0.4em; }
+/* ── Definition lists ─────────────────────────────────────────────── */
+dl {
+  margin: 1em 0;
+}
 
-/* ── Code ──────────────────────────────────────────────────── */
+dt {
+  font-weight: 700;
+  font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
+  font-size: 0.95em;
+  color: #1e293b;
+  margin-top: 0.8em;
+}
+
+dd {
+  margin-left: 1.5em;
+  margin-bottom: 0.3em;
+  padding-left: 0.5em;
+  border-left: 2pt solid #e2e8f0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § CODE
+   ═══════════════════════════════════════════════════════════════════════ */
+
 code {
-  font-family: var(--font-mono);
+  font-family: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
   font-size: 0.82em;
-  background: #f3f4f6;
+  background: #f1f5f9;
   padding: 0.1em 0.35em;
-  border-radius: 3px;
-  color: #1f2937;
+  border-radius: 3pt;
+  color: #0f172a;
+  border: 0.5pt solid #e2e8f0;
 }
 
 pre {
-  font-family: var(--font-mono);
-  font-size: 0.78em;
-  line-height: 1.55;
-  background: var(--color-code-bg);
-  color: var(--color-code-fg);
-  padding: 0.9em 1.1em;
-  border-radius: 5px;
+  font-family: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  font-size: 8pt;
+  line-height: 1.5;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 0.85em 1em;
+  border-radius: 4pt;
+  border: 0.5pt solid #313244;
   break-inside: avoid;
   margin: 1em 0;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
 pre code {
   background: none;
   padding: 0;
   color: inherit;
   font-size: inherit;
   border-radius: 0;
+  border: none;
 }
 
-/* Pandoc sourceCode wrapper (syntax highlight) */
+/* Pandoc sourceCode wrapper */
 div.sourceCode {
   break-inside: avoid;
   margin: 1em 0;
@@ -218,103 +299,206 @@ div.sourceCode pre {
   margin: 0;
 }
 
-/* ── Blockquotes ───────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § BLOCKQUOTES
+   ═══════════════════════════════════════════════════════════════════════ */
+
 blockquote {
-  border-left: 3.5px solid #93c5fd;
-  background: var(--color-quote-bg);
+  border-left: 3pt solid #3b82f6;
+  background: #eff6ff;
   margin: 1em 0;
-  padding: 0.6em 1.1em;
+  padding: 0.7em 1.2em;
   color: #1e40af;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 4pt 4pt 0;
   font-style: italic;
 }
-blockquote p { text-align: left; }
-blockquote blockquote {
-  border-left-color: #bfdbfe;
-  margin-left: 0.5em;
+
+blockquote p {
+  text-align: left;
+  margin: 0.4em 0;
 }
 
-/* ── Tables ────────────────────────────────────────────────── */
+blockquote blockquote {
+  border-left-color: #93c5fd;
+  background: #f0f9ff;
+  margin: 0.5em 0 0.5em 0.3em;
+}
+
+blockquote blockquote blockquote {
+  border-left-color: #bfdbfe;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § TABLES — Premium rendering with strong visible borders & accents
+   ═══════════════════════════════════════════════════════════════════════ */
+
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1em 0;
-  font-size: 0.88em;
-  border: 1px solid var(--color-border);
+  margin: 1.2em 0;
+  font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
+  font-size: 9pt;
+  line-height: 1.45;
+  border-top: 2pt solid #1e3a5f;
+  border-bottom: 2pt solid #1e3a5f;
 }
-thead { display: table-header-group; }
-tr { break-inside: avoid; }
-th, td {
-  border: 1px solid var(--color-border);
-  padding: 0.45em 0.8em;
-  text-align: left;
+
+thead {
+  display: table-header-group;
 }
+
+thead tr {
+  background: #1e3a5f;
+}
+
 th {
-  background: #f3f4f6;
-  font-family: var(--font-sans);
+  background: #1e3a5f;
+  color: #ffffff;
   font-weight: 600;
-  font-size: 0.9em;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.55em 0.7em;
+  text-align: left;
+  border: none;
+  border-right: 0.5pt solid #2d5a88;
 }
-tr:nth-child(even) td { background: #f9fafb; }
-/* Ensure empty cells have visible borders */
+
+th:last-child {
+  border-right: none;
+}
+
+tbody tr {
+  break-inside: avoid;
+  border-bottom: 0.5pt solid #e2e8f0;
+}
+
+td {
+  padding: 0.5em 0.7em;
+  text-align: left;
+  color: #334155;
+  border: none;
+  border-right: 0.5pt solid #f1f5f9;
+}
+
+td:last-child {
+  border-right: none;
+}
+
+/* Alternating row background */
+tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+/* Subtle hover-like emphasis for first column */
+td:first-child {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+/* Ensure empty cells maintain structure */
 td:empty::after { content: '\00a0'; }
 
-/* Table caption (Pandoc table_captions extension) */
+/* Table caption */
 caption {
   caption-side: bottom;
-  font-size: 0.85em;
-  color: var(--color-muted);
+  font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
+  font-size: 8.5pt;
+  color: #64748b;
   font-style: italic;
-  padding: 0.5em 0;
+  padding: 0.6em 0 0.2em;
   text-align: center;
 }
 
-/* ── Horizontal rule ───────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § HORIZONTAL RULE
+   ═══════════════════════════════════════════════════════════════════════ */
+
 hr {
   border: none;
-  border-top: 1px solid var(--color-border);
-  margin: 1.5em 0;
+  border-top: 1pt solid #cbd5e1;
+  margin: 2em 3em;
 }
 
-/* ── Images ────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § IMAGES & FIGURES
+   ═══════════════════════════════════════════════════════════════════════ */
+
 img {
   max-width: 100%;
   height: auto;
   break-inside: avoid;
 }
+
 figure {
-  margin: 1em 0;
+  margin: 1.2em 0;
   break-inside: avoid;
   text-align: center;
 }
+
 figcaption {
-  font-size: 0.85em;
-  color: var(--color-muted);
+  font-family: 'Liberation Sans', 'DejaVu Sans', sans-serif;
+  font-size: 8.5pt;
+  color: #64748b;
   margin-top: 0.4em;
+  font-style: italic;
 }
 
-/* ── Footnotes ─────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § FOOTNOTES
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .footnotes,
 section[role="doc-endnotes"] {
-  font-size: 0.85em;
-  color: var(--color-muted);
-  border-top: 1px solid var(--color-border);
-  margin-top: 2em;
+  font-size: 8.5pt;
+  color: #64748b;
+  border-top: 1pt solid #e2e8f0;
+  margin-top: 2.5em;
   padding-top: 0.8em;
 }
-.footnote-ref { font-size: 0.75em; vertical-align: super; }
-a.footnote-back { text-decoration: none; }
 
-/* ── Math (KaTeX / MathJax fallback) ──────────────────────── */
+.footnote-ref {
+  font-size: 0.72em;
+  vertical-align: super;
+  color: #2563eb;
+}
+
+a.footnote-back {
+  text-decoration: none;
+  color: #94a3b8;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § MATH (MathML)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+math {
+  font-family: 'DejaVu Math TeX Gyre', 'Liberation Serif', serif;
+}
+
 .math, .math.display {
-  font-family: var(--font-serif);
+  font-family: 'Liberation Serif', 'DejaVu Serif', serif;
   font-size: 1em;
   text-align: center;
   margin: 0.8em 0;
 }
 .math.inline { display: inline; }
 
-/* ── Page break support ────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § PAGE BREAK SUPPORT
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .pagebreak {
   break-after: page;
   height: 0;
@@ -324,8 +508,32 @@ a.footnote-back { text-decoration: none; }
   visibility: hidden;
 }
 
-/* ── Emoji (rendered as text) ──────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § EMOJI
+   ═══════════════════════════════════════════════════════════════════════ */
+
 .emoji {
   font-style: normal;
   font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   § PRINT ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Prevent headings at bottom of page without content */
+h1, h2, h3, h4, h5, h6 {
+  break-after: avoid;
+}
+
+/* Keep lists together when possible */
+li {
+  break-inside: avoid;
+}
+
+/* Keep figures and tables together with their captions */
+figure, table, pre, blockquote {
+  break-inside: avoid;
 }
