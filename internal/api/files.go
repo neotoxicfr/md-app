@@ -48,6 +48,7 @@ var md = goldmark.New(
 
 // renderMarkdown converts markdown content to an HTML string.
 func renderMarkdown(content string) (string, error) {
+	content = preprocessMarkdown(content)
 	var buf bytes.Buffer
 	if err := md.Convert([]byte(content), &buf); err != nil {
 		return "", err

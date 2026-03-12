@@ -92,6 +92,57 @@
     return html;
   }
 
+  // ── Markdown normalization (keeps preview consistent with backend/export) ──
+  function normalizeMarkdown(content: string): string {
+    if (!content) return content;
+
+    content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\u00a0/g, ' ');
+
+    const lines = content.split('\n');
+    const out: string[] = [];
+    let inFence = false;
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+        inFence = !inFence;
+        out.push(line);
+        continue;
+      }
+
+      if (inFence) {
+        out.push(line);
+        continue;
+      }
+
+      line = line.replace(/^\s{4,}(#{1,6}\s+)/, '$1');
+
+      const t = line.trim();
+      if (t.startsWith('• ')) {
+        line = `- ${t.slice(2)}`;
+      } else if (t.startsWith('◦ ')) {
+        line = `  - ${t.slice(2)}`;
+      }
+
+      if (!line.trimStart().startsWith('#') && /\s+(#{1,6}\s+)/.test(line)) {
+        line = line.replace(/\s+(#{1,6}\s+)/g, '\n\n$1');
+      }
+
+      if (!/^\s*[-*+]/.test(line) && /\s+•\s+/.test(line)) {
+        line = line.replace(/\s+•\s+/g, '\n- ');
+      }
+
+      if (/\s+◦\s+/.test(line)) {
+        line = line.replace(/\s+◦\s+/g, '\n  - ');
+      }
+
+      out.push(...line.split('\n'));
+    }
+
+    return out.join('\n');
+  }
+
   // ── Page break marker regex (matches \newpage, \pagebreak, <!-- pagebreak -->, --- pagebreak ---) ──
   const pageBreakRe = /^(\\(?:newpage|pagebreak)\s*$|<!--\s*pagebreak\s*-->\s*$|---\s*pagebreak\s*---\s*$)/gm;
   const pageBreakHtml = '<div class="pagebreak-indicator" aria-label="Page break"><span>⸻ Saut de page ⸻</span></div>';
@@ -111,7 +162,7 @@
 
     try {
       // Replace page break markers before parsing
-      const preprocessed = content.replace(pageBreakRe, pageBreakHtml);
+      const preprocessed = normalizeMarkdown(content).replace(pageBreakRe, pageBreakHtml);
       let html = marked.parse(preprocessed) as string;
       html = processKaTeX(html);
       renderedHtml = html;
