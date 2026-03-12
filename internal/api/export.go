@@ -62,9 +62,71 @@ const pandocInputFmt = "markdown" +
 const pageBreakDiv = `<div class="pagebreak"></div>`
 
 var rePageBreak = regexp.MustCompile(`(?m)^\\(?:newpage|pagebreak)\s*$|^<!--\s*pagebreak\s*-->\s*$|^---\s*pagebreak\s*---\s*$`)
+var reInlineHeading = regexp.MustCompile(`\s+(#{1,6}\s+)`)
+var reInlineBullet = regexp.MustCompile(`\s+•\s+`)
+var reInlineSubBullet = regexp.MustCompile(`\s+◦\s+`)
+var reIndentedHeading = regexp.MustCompile(`^\s{4,}(#{1,6}\s+)`)
 
 func preprocessPageBreaks(content string) string {
 	return rePageBreak.ReplaceAllString(content, pageBreakDiv)
+}
+
+func preprocessMarkdown(content string) string {
+	if content == "" {
+		return content
+	}
+
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	content = strings.ReplaceAll(content, "\r", "\n")
+	content = strings.ReplaceAll(content, "\u00a0", " ")
+
+	lines := strings.Split(content, "\n")
+	out := make([]string, 0, len(lines)+16)
+	inFence := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			inFence = !inFence
+			out = append(out, line)
+			continue
+		}
+
+		if inFence {
+			out = append(out, line)
+			continue
+		}
+
+		line = reIndentedHeading.ReplaceAllString(line, "$1")
+
+		trimmed = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(trimmed, "• "):
+			line = "- " + strings.TrimPrefix(trimmed, "• ")
+		case strings.HasPrefix(trimmed, "◦ "):
+			line = "  - " + strings.TrimPrefix(trimmed, "◦ ")
+		}
+
+		if !strings.HasPrefix(strings.TrimLeft(line, " \t"), "#") && reInlineHeading.MatchString(line) {
+			line = reInlineHeading.ReplaceAllString(line, "\n\n$1")
+		}
+
+		if !strings.HasPrefix(strings.TrimLeft(line, " \t"), "-") &&
+			!strings.HasPrefix(strings.TrimLeft(line, " \t"), "*") &&
+			!strings.HasPrefix(strings.TrimLeft(line, " \t"), "+") &&
+			reInlineBullet.MatchString(line) {
+			line = reInlineBullet.ReplaceAllString(line, "\n- ")
+		}
+
+		if reInlineSubBullet.MatchString(line) {
+			line = reInlineSubBullet.ReplaceAllString(line, "\n  - ")
+		}
+
+		out = append(out, strings.Split(line, "\n")...)
+	}
+
+	return strings.Join(out, "\n")
 }
 
 // ─── Margin presets ─────────────────────────────────────────
@@ -169,7 +231,7 @@ func (h *exportHandler) export(w http.ResponseWriter, r *http.Request) {
 	outputFile := filepath.Join(tmpDir, "output"+fmtInfo.ext)
 
 	// Preprocess page breaks for PDF export
-	content := fwc.Content
+	content := preprocessMarkdown(fwc.Content)
 	if format == "pdf" {
 		content = preprocessPageBreaks(content)
 	}
@@ -328,7 +390,7 @@ func (h *exportHandler) exportRaw(w http.ResponseWriter, r *http.Request) {
 	inputFile := filepath.Join(tmpDir, "input.md")
 	outputFile := filepath.Join(tmpDir, "output"+fmtInfo.ext)
 
-	rawContent := body.Content
+	rawContent := preprocessMarkdown(body.Content)
 	if format == "pdf" {
 		rawContent = preprocessPageBreaks(rawContent)
 	}
