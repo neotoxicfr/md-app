@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yuin/goldmark"
@@ -46,11 +47,18 @@ var md = goldmark.New(
 	),
 )
 
+// bufPool reuses bytes.Buffer instances to reduce allocations during rendering.
+var bufPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
+
 // renderMarkdown converts markdown content to an HTML string.
 func renderMarkdown(content string) (string, error) {
 	content = preprocessMarkdown(content)
-	var buf bytes.Buffer
-	if err := md.Convert([]byte(content), &buf); err != nil {
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	if err := md.Convert([]byte(content), buf); err != nil {
 		return "", err
 	}
 	return buf.String(), nil

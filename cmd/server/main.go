@@ -66,11 +66,12 @@ func main() {
 	server := api.NewRouter(cfg, fileStore, redisClient, Version)
 
 	srv := &http.Server{
-		Addr:         cfg.HTTPAddr,
-		Handler:      server.Handler,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 120 * time.Second, // longer for PDF export
-		IdleTimeout:  120 * time.Second,
+		Addr:              cfg.HTTPAddr,
+		Handler:           server.Handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second, // longer for PDF export
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// Graceful shutdown

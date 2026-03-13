@@ -219,27 +219,31 @@
   let renderedHtml = $state('');
   let container = $state<HTMLElement | undefined>(undefined);
   let mermaidCounter = 0;
+  let renderTimer: ReturnType<typeof setTimeout>;
 
-  // Re‑render on content change
+  // Re‑render on content change (debounced to avoid thrashing during fast typing)
   $effect(() => {
     const content = $activeContent;
-    // Pre-load KaTeX if content has $ signs
+    // Pre-load KaTeX/Mermaid eagerly so they're ready when render fires
     if (content.includes('$')) ensureKaTeX();
-    // Pre-load Mermaid if content has mermaid code blocks
     if (content.includes('```mermaid')) ensureMermaid();
 
-    try {
-      // Replace page break markers before parsing
-      const preprocessed = normalizeMarkdown(content).replace(pageBreakRe, pageBreakHtml);
-      let html = marked.parse(preprocessed) as string;
-      html = processKaTeX(html);
-      renderedHtml = DOMPurify.sanitize(html, {
-        ADD_TAGS: ['math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'munder', 'mover', 'munderover', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'annotation'],
-        ADD_ATTR: ['xmlns', 'display', 'mathvariant', 'encoding', 'data-mermaid', 'data-copy', 'data-rendered'],
-      });
-    } catch {
-      renderedHtml = `<p class="render-error">Render error</p>`;
-    }
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(() => {
+      try {
+        const preprocessed = normalizeMarkdown(content).replace(pageBreakRe, pageBreakHtml);
+        let html = marked.parse(preprocessed) as string;
+        html = processKaTeX(html);
+        renderedHtml = DOMPurify.sanitize(html, {
+          ADD_TAGS: ['math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'munder', 'mover', 'munderover', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'annotation'],
+          ADD_ATTR: ['xmlns', 'display', 'mathvariant', 'encoding', 'data-mermaid', 'data-copy', 'data-rendered'],
+        });
+      } catch {
+        renderedHtml = `<p class="render-error">Render error</p>`;
+      }
+    }, 150);
+
+    return () => clearTimeout(renderTimer);
   });
 
   // Post-render: copy buttons, emojis, mermaid diagrams
