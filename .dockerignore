@@ -29,8 +29,7 @@ lefthook.yml
 .markdownlintignore
 .gitattributes
 .gitignore
-.env
-.env.*
+.env*
 docker-compose*.yml
 
 # Tests (not needed in image)

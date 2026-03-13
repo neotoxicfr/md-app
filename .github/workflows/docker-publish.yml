@@ -3,6 +3,19 @@ name: Docker Publish
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".golangci.yml"
+      - "lefthook.yml"
+      - "Makefile"
+      - ".editorconfig"
+      - ".markdownlint.json"
+      - ".markdownlintignore"
+      - ".github/workflows/**"
+      - "!.github/workflows/docker-publish.yml"
+      - ".github/dependabot.yml"
     tags: ["v*.*.*"]
   workflow_dispatch:
 

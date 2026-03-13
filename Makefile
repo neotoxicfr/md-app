@@ -1,4 +1,4 @@
-.PHONY: dev dev-frontend build test test-frontend lint vet vuln check clean docker docker-nas ci
+.PHONY: dev dev-frontend build test test-race test-frontend lint vet vuln check clean docker docker-nas ci
 
 dev:
 	go run ./cmd/server
@@ -10,7 +10,10 @@ build:
 	go build -o build/md ./cmd/server
 
 test:
-	go test ./... -race
+	go test ./...
+
+test-race:
+	go test -race -timeout 120s ./...
 
 test-frontend:
 	cd web && npm test

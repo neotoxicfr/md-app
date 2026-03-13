@@ -6,9 +6,8 @@
 
 # ── Environment & secrets (CRITICAL) ────────────────────────
 # .env contains passwords, API keys, domains — never commit!
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 # Docker secrets directory (redis_password, api_key, etc.)
 secrets/
 

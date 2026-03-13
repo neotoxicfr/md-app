@@ -15,7 +15,7 @@
 
 **MD** is a self-hosted webapp for writing, managing and exporting Markdown documents. It combines a split-pane editor with a live, typographically polished preview, and supports exporting to a wide range of formats — all from a clean, minimal interface designed for long-form writing in 2026.
 
-It is distributed under the **MIT licence** and designed to run on your own infrastructure behind your existing security stack (Traefik, CrowdSec, Redis, etc.).
+It is distributed under the **GNU GPL-3.0 licence** and designed to run on your own infrastructure behind your existing security stack (Traefik, CrowdSec, Redis, etc.).
 
 ---
 
@@ -404,7 +404,7 @@ Please run `go vet ./...` and `cd web && npm run typecheck` before submitting.
 
 ## Licence
 
-MIT © 2026 [MD Contributors](https://github.com/md-app/md/graphs/contributors)
+GPL-3.0 © 2026 [MD Contributors](https://github.com/cybergraphe-fr/md-app/graphs/contributors)
 
 ---
 

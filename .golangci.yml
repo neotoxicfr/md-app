@@ -1,21 +1,35 @@
 version: "2"
+
 linters:
+  default: none
   enable:
     - errcheck
     - govet
     - staticcheck
     - unused
     - ineffassign
-issues:
-  exclude-rules:
-    - linters:
-        - errcheck
-      source: "(fmt\\.Fprint|w\\.Write|resp\\.Body\\.Close|rows\\.Close|f\\.Close|io\\.Copy|rand\\.Read|os\\.Remove)"
-    - path: _test\.go
-      linters:
-        - errcheck
-  exclude-dirs:
-    - .github
-    - .claude
-    - web
-    - pandoc
+
+  settings:
+    errcheck:
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*net/http.Response).Body.Close
+        - io.Copy
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Closer).Close
+        - (*os.File).Close
+        - crypto/rand.Read
+        - os.Remove
+
+  exclusions:
+    paths:
+      - .github
+      - .claude
+      - web
+      - pandoc
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
