@@ -99,7 +99,7 @@ func Load() (*Config, error) {
 		}
 	}
 	if len(cfg.CORSRoots) == 0 {
-		cfg.CORSRoots = []string{"*"}
+		cfg.CORSRoots = []string{cfg.AppURL}
 	}
 
 	if cfg.StoragePath == "" {

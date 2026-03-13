@@ -49,13 +49,19 @@ func LoadOIDCConfig() *OIDCConfig {
 		scopes[i] = strings.TrimSpace(scopes[i])
 	}
 
+	sessionKey := secretOrEnv("oidc_session_key", "MD_OIDC_SESSION_KEY", "")
+	if sessionKey == "" {
+		slog.Error("OIDC enabled but MD_OIDC_SESSION_KEY is not set — OIDC disabled for security")
+		return nil
+	}
+
 	return &OIDCConfig{
 		Issuer:       issuer,
 		ClientID:     os.Getenv("MD_OIDC_CLIENT_ID"),
 		ClientSecret: secretOrEnv("oidc_client_secret", "MD_OIDC_CLIENT_SECRET", ""),
 		RedirectURL:  os.Getenv("MD_OIDC_REDIRECT_URL"),
 		Scopes:       scopes,
-		SessionKey:   secretOrEnv("oidc_session_key", "MD_OIDC_SESSION_KEY", "md-default-session-key-change-me"),
+		SessionKey:   sessionKey,
 	}
 }
 
@@ -162,7 +168,7 @@ func (p *oidcProvider) discover() (*oidcDiscovery, error) {
 	}
 
 	var d oidcDiscovery
-	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&d); err != nil {
 		return nil, fmt.Errorf("oidc discovery decode: %w", err)
 	}
 
@@ -210,7 +216,7 @@ func (p *oidcProvider) fetchJWKS(jwksURI string) error {
 	defer resp.Body.Close()
 
 	var doc jwksDoc
-	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&doc); err != nil {
 		return err
 	}
 

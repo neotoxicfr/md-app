@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"md/internal/config"
@@ -26,7 +27,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// apiKeyMiddleware enforces an optional API key (X-API-Key header or ?api_key query param).
+// apiKeyMiddleware enforces an optional API key (X-API-Key header or Authorization: Bearer).
 func apiKeyMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +37,9 @@ func apiKeyMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			}
 			key := r.Header.Get("X-API-Key")
 			if key == "" {
-				key = r.URL.Query().Get("api_key")
+				if auth := r.Header.Get("Authorization"); strings.HasPrefix(auth, "Bearer ") {
+					key = strings.TrimPrefix(auth, "Bearer ")
+				}
 			}
 			if !hmac.Equal([]byte(key), []byte(cfg.APIKey)) {
 				writeError(w, http.StatusUnauthorized, "invalid or missing API key")

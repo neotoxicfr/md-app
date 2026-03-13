@@ -14,6 +14,8 @@ import (
 
 // ---- SSE-based collaborative editing hub ----
 
+const maxClientsPerRoom = 50
+
 // CollabHub manages per-file collaboration rooms.
 type CollabHub struct {
 	mu    sync.RWMutex
@@ -112,6 +114,11 @@ func (ch *collabHandler) events(w http.ResponseWriter, r *http.Request) {
 
 	room := ch.hub.getOrCreateRoom(fileID)
 	room.mu.Lock()
+	if len(room.clients) >= maxClientsPerRoom {
+		room.mu.Unlock()
+		writeError(w, http.StatusServiceUnavailable, "too many editors in this room")
+		return
+	}
 	room.clients[clientID] = client
 	room.mu.Unlock()
 

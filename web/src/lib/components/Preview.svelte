@@ -350,7 +350,7 @@
             const { svg } = await mermaidModule.render(`mermaid-${mermaidCounter}`, src);
             const div = document.createElement('div');
             div.className = 'mermaid-diagram';
-            div.innerHTML = svg;
+            div.innerHTML = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } });
             block.replaceWith(div);
           } catch (err) {
             block.classList.add('mermaid-error');

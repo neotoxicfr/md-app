@@ -3,6 +3,7 @@
   import { api } from '$lib/api';
   import { X, Download, Loader } from 'lucide-svelte';
   import { get } from 'svelte/store';
+  import DOMPurify from 'dompurify';
 
   let { isOpen, onClose }: { isOpen: boolean; onClose: () => void } = $props();
 
@@ -79,8 +80,9 @@
         if (formatId === 'html') {
           // Generate HTML client-side from current content
           const safeName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          const safeContent = DOMPurify.sanitize(content);
           const blob = new Blob([
-            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName}</title></head><body>\n${content}\n</body></html>`
+            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName}</title></head><body>\n${safeContent}\n</body></html>`
           ], { type: 'text/html' });
           downloadBlob(blob, `${name}${ext}`);
         } else {

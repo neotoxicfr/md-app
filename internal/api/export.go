@@ -198,13 +198,13 @@ func (h *exportHandler) export(w http.ResponseWriter, r *http.Request) {
 		htmlFile := filepath.Join(tmpDir, "output.html")
 		if err := h.runPDFExport(ctx, inputFile, htmlFile, outputFile, margins); err != nil {
 			slog.Error("pdf export failed", "file", fwc.Name, "error", err)
-			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			writeError(w, http.StatusInternalServerError, "export conversion failed")
 			return
 		}
 	} else {
 		if err := h.runPandocExport(ctx, inputFile, outputFile, fmtInfo.to); err != nil {
 			slog.Error("pandoc export failed", "format", format, "file", fwc.Name, "error", err)
-			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			writeError(w, http.StatusInternalServerError, "export conversion failed")
 			return
 		}
 	}
@@ -381,13 +381,13 @@ func (h *exportHandler) exportRaw(w http.ResponseWriter, r *http.Request) {
 		htmlFile := filepath.Join(tmpDir, "output.html")
 		if err := h.runPDFExport(ctx, inputFile, htmlFile, outputFile, margins); err != nil {
 			slog.Error("pdf export raw failed", "error", err)
-			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			writeError(w, http.StatusInternalServerError, "export conversion failed")
 			return
 		}
 	} else {
 		if err := h.runPandocExport(ctx, inputFile, outputFile, fmtInfo.to); err != nil {
 			slog.Error("pandoc export raw failed", "format", format, "error", err)
-			writeError(w, http.StatusInternalServerError, "export conversion failed: "+err.Error())
+			writeError(w, http.StatusInternalServerError, "export conversion failed")
 			return
 		}
 	}
