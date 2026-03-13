@@ -5,7 +5,7 @@
 [![CI](https://github.com/cybergraphe-fr/md-app/actions/workflows/ci.yml/badge.svg)](https://github.com/cybergraphe-fr/md-app/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/cybergraphe-fr/md-app/actions/workflows/codeql.yml/badge.svg)](https://github.com/cybergraphe-fr/md-app/actions/workflows/codeql.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![Svelte](https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte)](https://svelte.dev)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](docker-compose.nas.yml)
 
