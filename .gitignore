@@ -61,7 +61,13 @@ certs/
 # Let's Encrypt staging certs
 certs-staging/
 
+# ── Claude Code (local config) ─────────────────────────────
+.claude/
+CLAUDE.md
+
+# ── Work sessions (local tracking) ────────────────────────
+.sessions/
+
 # ── Misc ─────────────────────────────────────────────────────
-# .sessions/  # optional: uncomment to ignore work session tracking
 # exported PDFs (generated, not source)
 *.pdf
