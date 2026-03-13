@@ -7,8 +7,8 @@
 # multi-format document export (PDF, DOCX, HTML, etc.).
 #
 # Build stages:
-#   1. web-build  → Compile the SvelteKit frontend (Node 22)
-#   2. go-build   → Compile the Go binary with embedded metadata (Go 1.25)
+#   1. web-build  → Compile the SvelteKit frontend (Node 24)
+#   2. go-build   → Compile the Go binary with embedded metadata (Go 1.26)
 #   3. runtime    → Minimal Alpine image with Pandoc + WeasyPrint + fonts
 #
 # Build args (set via docker-compose or CI):
@@ -27,7 +27,7 @@
 # ─────────────────────────────────────────────────────────────
 # Produces a static SPA in /src/web/dist/ (adapter-static).
 # Only package.json + lock file are copied first for layer caching.
-FROM node:22-alpine AS web-build
+FROM node:24-alpine AS web-build
 WORKDIR /src
 
 # Install dependencies (cached unless package*.json changes)
@@ -44,17 +44,18 @@ RUN cd web && npm run build
 # ─────────────────────────────────────────────────────────────
 # Produces a statically-linked binary at /app/md (~15 MB).
 # CGO is disabled for a fully static build (no libc dependency).
-FROM golang:1.25-alpine AS go-build
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS go-build
+
+ARG TARGETOS
+ARG TARGETARCH
+
 WORKDIR /src
 
 # Ensure the correct Go toolchain is used
 ENV GOTOOLCHAIN=auto
 
-# Static build: no CGO, targeting Linux AMD64
-# Change GOARCH to arm64 if deploying on ARM (e.g. Raspberry Pi, M-series Mac)
+# Static build: no CGO
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
 
 # Git is needed for go mod download (private repos or git-based deps)
 RUN apk add --no-cache git
@@ -65,11 +66,9 @@ RUN go mod download
 
 # Copy full source tree
 COPY . .
-RUN go mod tidy
 
-# Run unit tests during build (failures are non-blocking: || true)
-# Remove "|| true" to make the build fail on test failures
-RUN go test -short ./... 2>&1 || true
+# Run unit tests during build
+RUN go test -short ./...
 
 # Build args injected as linker flags into the binary
 ARG VERSION=dev
@@ -80,7 +79,7 @@ ARG BUILD_DATE=unknown
 #   -s -w     → strip debug info (smaller binary)
 #   -X main.* → inject version metadata at compile time
 #   -trimpath → reproducible builds (remove local paths from binary)
-RUN go build \
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags="-s -w -X main.Version=${VERSION} -X main.GitSHA=${GIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
     -trimpath \
     -o /app/md \
@@ -92,13 +91,13 @@ RUN go build \
 # ─────────────────────────────────────────────────────────────
 # Minimal production image. Only the compiled binary, the SPA,
 # Pandoc templates, and system tools are included.
-FROM alpine:3.21 AS runtime
+FROM alpine:3.23 AS runtime
 
 # OCI image metadata (adjust source URL if you forked the project)
 LABEL org.opencontainers.image.title="MD"
 LABEL org.opencontainers.image.description="Open-source markdown editor & file manager"
-LABEL org.opencontainers.image.source="https://github.com/cybergraphe-fr/md"
-LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.source="https://github.com/cybergraphe-fr/md-app"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
 
 # System dependencies:
 #   pandoc          → multi-format export (DOCX, HTML, LaTeX, etc.)
