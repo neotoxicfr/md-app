@@ -117,8 +117,8 @@ func (ch *collabHandler) events(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		close(client.done)
-		ch.hub.removeClient(fileID, clientID)
 		ch.broadcastPresence(room)
+		ch.hub.removeClient(fileID, clientID)
 		slog.Info("collab: client disconnected", "file_id", fileID, "client", clientID)
 	}()
 
@@ -245,6 +245,7 @@ func (ch *collabHandler) broadcastPresence(room *collabRoom) {
 		"users": users,
 	})
 	if err != nil {
+		slog.Error("collab: marshal presence failed", "error", err)
 		return
 	}
 

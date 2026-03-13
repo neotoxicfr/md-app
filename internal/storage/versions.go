@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -132,10 +133,12 @@ func (s *Storage) ListVersions(fileID string) ([]Version, error) {
 		}
 		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
 		if err != nil {
+			slog.Warn("skipping unreadable version file", "file", e.Name(), "error", err)
 			continue
 		}
 		var v Version
 		if err := json.Unmarshal(data, &v); err != nil {
+			slog.Warn("skipping corrupted version metadata", "file", e.Name(), "error", err)
 			continue
 		}
 		versions = append(versions, v)
@@ -201,7 +204,9 @@ func (s *Storage) RestoreVersion(fileID, versionID string) (File, error) {
 	// Save current content as a backup version before restoring.
 	current, err := s.GetContent(fileID)
 	if err == nil {
-		_, _ = s.SaveVersion(fileID, current.Content, "auto-save before restore")
+		if _, err := s.SaveVersion(fileID, current.Content, "auto-save before restore"); err != nil {
+			slog.Warn("auto-version before restore failed", "file_id", fileID, "error", err)
+		}
 	}
 
 	// Update the file with the restored content.
@@ -211,7 +216,9 @@ func (s *Storage) RestoreVersion(fileID, versionID string) (File, error) {
 	}
 
 	// Record the restore as a version.
-	_, _ = s.SaveVersion(fileID, vc.Content, fmt.Sprintf("restored from version %s", versionID))
+	if _, err := s.SaveVersion(fileID, vc.Content, fmt.Sprintf("restored from version %s", versionID)); err != nil {
+		slog.Warn("version snapshot after restore failed", "file_id", fileID, "error", err)
+	}
 
 	return updated, nil
 }

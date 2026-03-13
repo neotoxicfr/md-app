@@ -130,7 +130,9 @@ func (h *filesHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	// Auto-version: save current content before overwriting.
 	if current, err := h.store.GetContent(id); err == nil {
-		_, _ = h.store.SaveVersion(id, current.Content, "auto-save")
+		if _, err := h.store.SaveVersion(id, current.Content, "auto-save"); err != nil {
+			slog.Warn("auto-version failed", "file_id", id, "error", err)
+		}
 	}
 
 	f, err := h.store.Update(id, body.Name, body.Content)
@@ -144,7 +146,9 @@ func (h *filesHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 	// Invalidate cache
 	if h.cache != nil {
-		_ = h.cache.Delete(r.Context(), "render:"+id)
+		if err := h.cache.Delete(r.Context(), "render:"+id); err != nil {
+			slog.Warn("cache invalidation failed", "key", "render:"+id, "error", err)
+		}
 	}
 	writeJSON(w, http.StatusOK, f)
 }
@@ -161,7 +165,9 @@ func (h *filesHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.cache != nil {
-		_ = h.cache.Delete(r.Context(), "render:"+id)
+		if err := h.cache.Delete(r.Context(), "render:"+id); err != nil {
+			slog.Warn("cache invalidation failed", "key", "render:"+id, "error", err)
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -202,7 +208,9 @@ func (h *filesHandler) render(w http.ResponseWriter, r *http.Request) {
 	result := map[string]string{"html": rendered, "name": fwc.Name}
 	if h.cache != nil {
 		if b, err := marshalJSON(result); err == nil {
-			_ = h.cache.Set(r.Context(), cacheKey, string(b))
+			if err := h.cache.Set(r.Context(), cacheKey, string(b)); err != nil {
+				slog.Warn("cache set failed", "key", cacheKey, "error", err)
+			}
 		}
 	}
 
@@ -337,5 +345,7 @@ func (h *filesHandler) exportHTML(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.html"`, fwc.Slug))
-	w.Write(buf.Bytes())
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		slog.Warn("write response failed", "error", err)
+	}
 }

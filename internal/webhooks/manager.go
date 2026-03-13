@@ -129,7 +129,11 @@ func (m *Manager) save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.configPath, data, 0644)
+	tmp := m.configPath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, m.configPath)
 }
 
 // ---- CRUD ----

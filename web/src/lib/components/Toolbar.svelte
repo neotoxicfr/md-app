@@ -105,6 +105,9 @@
       handleSave();
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Don't intercept when CodeMirror editor is focused (it handles Ctrl+K for link insertion)
+      const active = document.activeElement;
+      if (active && active.closest('.cm-editor')) return;
       e.preventDefault();
       onSearch();
     }

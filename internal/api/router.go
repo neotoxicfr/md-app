@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -17,8 +18,25 @@ import (
 	"md/internal/webhooks"
 )
 
+// Server wraps the HTTP handler and manages component lifecycles.
+type Server struct {
+	Handler    http.Handler
+	authH      *authHandler
+	webhookMgr *webhooks.Manager
+}
+
+// Shutdown gracefully stops background goroutines.
+func (s *Server) Shutdown() {
+	if s.authH != nil {
+		s.authH.Shutdown()
+	}
+	if s.webhookMgr != nil {
+		s.webhookMgr.Shutdown()
+	}
+}
+
 // NewRouter assembles and returns the full HTTP router.
-func NewRouter(cfg *config.Config, store *storage.Storage, c *cache.Client, version string) http.Handler {
+func NewRouter(cfg *config.Config, store *storage.Storage, c *cache.Client, version string) *Server {
 	r := chi.NewRouter()
 
 	// Global middleware
@@ -49,8 +67,9 @@ func NewRouter(cfg *config.Config, store *storage.Storage, c *cache.Client, vers
 	r.Handle("/fonts/*", http.StripPrefix("/fonts/", http.FileServer(http.Dir("/app/web/fonts"))))
 
 	// Auth endpoints (always public, handled before OIDC middleware)
+	var ah *authHandler
 	if oidcCfg != nil {
-		ah := newAuthHandler(oidcCfg)
+		ah = newAuthHandler(oidcCfg)
 		r.Route("/api/auth", func(r chi.Router) {
 			r.Get("/login", ah.login)
 			r.Get("/callback", ah.callback)
@@ -131,7 +150,11 @@ func NewRouter(cfg *config.Config, store *storage.Storage, c *cache.Client, vers
 		http.ServeFile(w, r, "/app/web/index.html")
 	})
 
-	return r
+	return &Server{
+		Handler:    r,
+		authH:      ah,
+		webhookMgr: webhookMgr,
+	}
 }
 
 // ---- helper: JSON decode ----
@@ -154,5 +177,7 @@ func writeRaw(w http.ResponseWriter, status int, contentType string, body []byte
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(body)))
 	w.WriteHeader(status)
-	w.Write(body)
+	if _, err := w.Write(body); err != nil {
+		slog.Warn("write response failed", "error", err)
+	}
 }

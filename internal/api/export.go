@@ -206,11 +206,14 @@ func (h *exportHandler) export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filename := fwc.Slug + fmtInfo.ext
+	safeFilename := strings.ReplaceAll(strings.ReplaceAll(filename, `"`, ""), `\`, "")
 	w.Header().Set("Content-Type", fmtInfo.contentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeFilename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(output)))
 	w.WriteHeader(http.StatusOK)
-	w.Write(output)
+	if _, err := w.Write(output); err != nil {
+		slog.Warn("write export response failed", "error", err)
+	}
 }
 
 // runPandocExport runs Pandoc for non-PDF formats.
@@ -365,9 +368,12 @@ func (h *exportHandler) exportRaw(w http.ResponseWriter, r *http.Request) {
 
 	slug := strings.TrimSuffix(strings.ReplaceAll(strings.ToLower(body.Name), " ", "-"), ".md")
 	filename := slug + fmtInfo.ext
+	safeFilename := strings.ReplaceAll(strings.ReplaceAll(filename, `"`, ""), `\`, "")
 	w.Header().Set("Content-Type", fmtInfo.contentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeFilename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(output)))
 	w.WriteHeader(http.StatusOK)
-	w.Write(output)
+	if _, err := w.Write(output); err != nil {
+		slog.Warn("write export response failed", "error", err)
+	}
 }

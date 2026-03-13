@@ -164,8 +164,10 @@ export async function importFile(file: File): Promise<void> {
   isLoading.set(true);
   error.set(null);
   try {
-    const fwc = await api.importFile(file);
-    files.update((fs) => [fwc, ...fs]);
+    const meta = await api.importFile(file);
+    files.update((fs) => [meta, ...fs]);
+    // Fetch full content since import returns metadata only
+    const fwc = await api.get(meta.id);
     activeFileId.set(fwc.id);
     activeName.set(fwc.name);
     activeContent.set(fwc.content);

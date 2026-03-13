@@ -5,6 +5,7 @@
   import markedFootnote from 'marked-footnote';
   import hljs from 'highlight.js';
   import { activeContent } from '$lib/stores/files';
+  import DOMPurify from 'dompurify';
 
   // ── Mermaid (lazy‑loaded) ──
   let mermaidReady = false;
@@ -62,8 +63,9 @@
         return `<a href="${escapedHref}"${t}${attrs}>${text}</a>`;
       },
       image({ href, title, text }: { href: string; title?: string | null; text: string }): string {
-        const t = title ? ` title="${title}"` : '';
-        return `<img src="${href}" alt="${text}"${t} loading="lazy">`;
+        const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const t = title ? ` title="${escAttr(title)}"` : '';
+        return `<img src="${href}" alt="${escAttr(text)}"${t} loading="lazy">`;
       },
       code({ text, lang }: { text: string; lang?: string }): string {
         if (lang === 'mermaid') {
@@ -231,7 +233,10 @@
       const preprocessed = normalizeMarkdown(content).replace(pageBreakRe, pageBreakHtml);
       let html = marked.parse(preprocessed) as string;
       html = processKaTeX(html);
-      renderedHtml = html;
+      renderedHtml = DOMPurify.sanitize(html, {
+        ADD_TAGS: ['math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'munder', 'mover', 'munderover', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'annotation'],
+        ADD_ATTR: ['xmlns', 'display', 'mathvariant', 'encoding', 'data-mermaid', 'data-copy', 'data-rendered'],
+      });
     } catch {
       renderedHtml = `<p class="render-error">Render error</p>`;
     }
@@ -259,6 +264,9 @@
               btn.textContent = 'Copy';
               btn.classList.remove('copied');
             }, 1800);
+          }).catch(() => {
+            btn.textContent = 'Failed';
+            setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
           });
         });
         pre.appendChild(btn);
@@ -287,8 +295,9 @@
             div.className = 'mermaid-diagram';
             div.innerHTML = svg;
             block.replaceWith(div);
-          } catch {
+          } catch (err) {
             block.classList.add('mermaid-error');
+            console.warn('Mermaid render failed:', err);
           }
         }
       }

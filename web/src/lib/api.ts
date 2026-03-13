@@ -58,7 +58,7 @@ export interface WebhookData {
   id: string;
   url: string;
   events: string[];
-  secret: string;
+  secret?: string;
   active: boolean;
   created_at: string;
 }
@@ -126,7 +126,7 @@ export const api = {
     return `${BASE}/export/raw/${format}${qs}`;
   },
 
-  async importFile(file: File): Promise<FileWithContent> {
+  async importFile(file: File): Promise<FileMeta> {
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${BASE}/files/import`, { method: 'POST', body: form });

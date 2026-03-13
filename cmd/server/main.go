@@ -63,11 +63,11 @@ func main() {
 	fileStore := storage.New(cfg.StoragePath)
 
 	// HTTP router
-	router := api.NewRouter(cfg, fileStore, redisClient, Version)
+	server := api.NewRouter(cfg, fileStore, redisClient, Version)
 
 	srv := &http.Server{
 		Addr:         cfg.HTTPAddr,
-		Handler:      router,
+		Handler:      server.Handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 120 * time.Second, // longer for PDF export
 		IdleTimeout:  120 * time.Second,
@@ -94,6 +94,7 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("shutdown error", "error", err)
 	}
+	server.Shutdown()
 
 	if redisClient != nil {
 		if err := redisClient.Close(); err != nil {

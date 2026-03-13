@@ -9,6 +9,7 @@
   let results = $state<SearchResult[]>([]);
   let searching = $state(false);
   let searched = $state(false);
+  let searchError = $state<string | null>(null);
   let debounceTimer: ReturnType<typeof setTimeout>;
   let inputEl = $state<HTMLInputElement | undefined>(undefined);
 
@@ -24,6 +25,7 @@
 
   function handleInput() {
     clearTimeout(debounceTimer);
+    searchError = null;
     if (query.trim().length < 2) {
       results = [];
       searched = false;
@@ -35,12 +37,14 @@
   async function doSearch() {
     if (query.trim().length < 2) return;
     searching = true;
+    searchError = null;
     try {
       const res = await api.search(query.trim());
       results = res.results;
       searched = true;
-    } catch {
+    } catch (e) {
       results = [];
+      searchError = e instanceof Error ? e.message : 'Search failed';
     } finally {
       searching = false;
     }
@@ -87,6 +91,8 @@
       <div class="search-results">
         {#if searching}
           <div class="search-status">Searching…</div>
+        {:else if searchError}
+          <div class="search-status" style="color: var(--danger)">{searchError}</div>
         {:else if searched && results.length === 0}
           <div class="search-status">No results for "{query}"</div>
         {:else}

@@ -9,6 +9,7 @@
   let loading = $state(false);
   let restoring = $state(false);
   let previewContent = $state<string | null>(null);
+  let loadError = $state<string | null>(null);
 
   $effect(() => {
     if (isOpen && $activeFileId) {
@@ -25,8 +26,9 @@
     try {
       const res = await api.listVersions($activeFileId);
       versions = res.versions;
-    } catch {
+    } catch (e) {
       versions = [];
+      loadError = e instanceof Error ? e.message : 'Failed to load versions';
     } finally {
       loading = false;
     }
@@ -37,8 +39,9 @@
     try {
       const vc = await api.getVersion($activeFileId, v.id);
       previewContent = vc.content;
-    } catch {
+    } catch (e) {
       previewContent = null;
+      console.warn('Failed to load version preview:', e);
     }
   }
 
@@ -51,8 +54,8 @@
       // Reload the file
       await openFile($activeFileId);
       onClose();
-    } catch {
-      // error handled by store
+    } catch (e) {
+      loadError = e instanceof Error ? e.message : 'Restore failed';
     } finally {
       restoring = false;
     }
@@ -92,6 +95,8 @@
         <div class="version-list">
           {#if loading}
             <div class="version-empty">Loading history…</div>
+          {:else if loadError}
+            <div class="version-empty" style="color: var(--danger)">{loadError}</div>
           {:else if versions.length === 0}
             <div class="version-empty">
               <Clock size={24} />

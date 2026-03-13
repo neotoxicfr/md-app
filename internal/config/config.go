@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -130,9 +131,12 @@ func (c *Config) RedisHost() string {
 
 func getEnvInt64(key string, fallback int64) int64 {
 	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			return n
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			slog.Warn("invalid integer env var, using default", "key", key, "value", v, "fallback", fallback)
+			return fallback
 		}
+		return n
 	}
 	return fallback
 }

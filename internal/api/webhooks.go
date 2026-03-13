@@ -2,7 +2,9 @@ package api
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -88,7 +90,12 @@ func (h *webhookHandler) update(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		writeError(w, http.StatusNotFound, err.Error())
+		if strings.Contains(err.Error(), "not found") {
+			writeError(w, http.StatusNotFound, err.Error())
+		} else {
+			slog.Error("webhook update failed", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "could not update webhook")
+		}
 		return
 	}
 	writeJSON(w, http.StatusOK, hook)

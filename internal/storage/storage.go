@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -229,6 +230,7 @@ func (s *Storage) List() ([]File, error) {
 		id := strings.TrimSuffix(e.Name(), ".json")
 		f, err := s.GetMeta(id)
 		if err != nil {
+			slog.Warn("skipping corrupted file metadata", "id", id, "error", err)
 			continue
 		}
 		files = append(files, f)

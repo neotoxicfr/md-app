@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -36,6 +37,7 @@ func (h *searchHandler) search(w http.ResponseWriter, r *http.Request) {
 
 	results, err := h.store.Search(query)
 	if err != nil {
+		slog.Error("search failed", "query", query, "error", err)
 		writeError(w, http.StatusInternalServerError, "search failed")
 		return
 	}

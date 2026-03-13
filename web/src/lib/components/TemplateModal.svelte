@@ -8,6 +8,7 @@
   let templates = $state<TemplateSummary[]>([]);
   let loading = $state(false);
   let applying = $state(false);
+  let templateError = $state<string | null>(null);
 
   const categoryIcons: Record<string, typeof FileText> = {
     writing: PenTool,
@@ -27,8 +28,9 @@
     try {
       const res = await api.listTemplates();
       templates = res.templates;
-    } catch {
+    } catch (e) {
       templates = [];
+      templateError = e instanceof Error ? e.message : 'Failed to load templates';
     } finally {
       loading = false;
     }
@@ -40,8 +42,8 @@
       const detail = await api.getTemplate(id);
       await createFile(detail.name, detail.content);
       onClose();
-    } catch {
-      // error handled by store
+    } catch (e) {
+      templateError = e instanceof Error ? e.message : 'Failed to apply template';
     } finally {
       applying = false;
     }
@@ -63,6 +65,10 @@
       </div>
 
       <p class="modal-subtitle">Start with a pre-built template to save time</p>
+
+      {#if templateError}
+        <div class="template-loading" style="color: var(--danger)">{templateError}</div>
+      {/if}
 
       <div class="template-grid">
         {#if loading}

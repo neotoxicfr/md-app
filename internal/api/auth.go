@@ -167,12 +167,22 @@ func (p *oidcProvider) discover() (*oidcDiscovery, error) {
 	}
 
 	p.mu.Lock()
+	// Re-check after acquiring write lock (another goroutine may have fetched)
+	if p.disc != nil && time.Since(p.fetchedAt) < time.Hour {
+		existing := p.disc
+		p.mu.Unlock()
+		return existing, nil
+	}
 	p.disc = &d
 	p.fetchedAt = time.Now()
 	p.mu.Unlock()
 
 	// Prefetch JWKS
-	go func() { _ = p.fetchJWKS(d.JwksURI) }()
+	go func() {
+		if err := p.fetchJWKS(d.JwksURI); err != nil {
+			slog.Warn("auth: JWKS prefetch failed", "uri", d.JwksURI, "error", err)
+		}
+	}()
 
 	return &d, nil
 }
