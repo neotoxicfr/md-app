@@ -229,7 +229,7 @@ func streamFile(w http.ResponseWriter, path, contentType, filename string) error
 		return err
 	}
 
-	safeFilename := strings.ReplaceAll(strings.ReplaceAll(filename, `"`, ""), `\`, "")
+	safeFilename := strings.NewReplacer(`"`, "", `\`, "", "\r", "", "\n", "").Replace(filename)
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeFilename))
 	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
@@ -300,7 +300,7 @@ func (h *exportHandler) runPDFExport(ctx context.Context, inputFile, htmlFile, o
 		override := marginOverrideCSS(margins)
 		// Inject right before </head>
 		modified := strings.Replace(string(htmlBytes), "</head>", override+"\n</head>", 1)
-		if err := os.WriteFile(htmlFile, []byte(modified), 0644); err != nil {
+		if err := os.WriteFile(htmlFile, []byte(modified), 0600); err != nil {
 			return fmt.Errorf("write margin override: %w", err)
 		}
 	}

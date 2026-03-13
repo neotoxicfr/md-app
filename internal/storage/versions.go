@@ -68,7 +68,7 @@ func (s *Storage) SaveVersion(fileID, content, message string) (Version, error) 
 	if err != nil {
 		return Version{}, err
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return Version{}, fmt.Errorf("create versions dir: %w", err)
 	}
 
@@ -89,7 +89,7 @@ func (s *Storage) SaveVersion(fileID, content, message string) (Version, error) 
 	if err != nil {
 		return Version{}, err
 	}
-	if err := os.WriteFile(vcp, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(vcp, []byte(content), 0600); err != nil {
 		return Version{}, fmt.Errorf("write version content: %w", err)
 	}
 
@@ -102,7 +102,7 @@ func (s *Storage) SaveVersion(fileID, content, message string) (Version, error) 
 	if err != nil {
 		return Version{}, err
 	}
-	if err := os.WriteFile(vmp, meta, 0644); err != nil {
+	if err := os.WriteFile(vmp, meta, 0600); err != nil {
 		return Version{}, fmt.Errorf("write version meta: %w", err)
 	}
 

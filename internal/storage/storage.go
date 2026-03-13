@@ -79,14 +79,14 @@ func (s *Storage) saveMeta(f File) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(mp), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(mp), 0750); err != nil {
 		return err
 	}
 	b, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(mp, b, 0644)
+	return os.WriteFile(mp, b, 0600)
 }
 
 // Create stores a new markdown document and returns its metadata.
@@ -94,7 +94,7 @@ func (s *Storage) Create(name, relPath, content string) (File, error) {
 	id := uuid.New().String()
 	now := time.Now().UTC()
 
-	if err := os.MkdirAll(filepath.Join(s.root, "files"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(s.root, "files"), 0750); err != nil {
 		return File{}, err
 	}
 
@@ -102,7 +102,7 @@ func (s *Storage) Create(name, relPath, content string) (File, error) {
 	if err != nil {
 		return File{}, err
 	}
-	if err := os.WriteFile(cp, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(cp, []byte(content), 0600); err != nil {
 		return File{}, err
 	}
 
@@ -176,7 +176,7 @@ func (s *Storage) Update(id, name, content string) (File, error) {
 	if err != nil {
 		return File{}, err
 	}
-	if err := os.WriteFile(cp, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(cp, []byte(content), 0600); err != nil {
 		return File{}, err
 	}
 
